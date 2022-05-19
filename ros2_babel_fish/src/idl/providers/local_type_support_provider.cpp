@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "ros2_babel_fish/idl/providers/local_type_support_provider.hpp"
+#include "ros2_babel_fish/exceptions/babel_fish_exception.hpp"
 
 #include <ament_index_cpp/get_resources.hpp>
 #include <ament_index_cpp/get_package_prefix.hpp>
@@ -59,7 +60,7 @@ std::string get_typesupport_library_path(
     package_prefix = ament_index_cpp::get_package_prefix( package_name );
   } catch ( ament_index_cpp::PackageNotFoundError &e )
   {
-    throw std::runtime_error( e.what());
+    throw BabelFishException( e.what());
   }
 
   auto library_path = package_prefix + dynamic_library_folder + filename_prefix +
@@ -77,7 +78,7 @@ extract_type_identifier( const std::string &full_type )
        sep_position_back == 0 ||
        sep_position_back == full_type.length() - 1 )
   {
-    throw std::runtime_error(
+    throw BabelFishException(
       "Message type '" + full_type + "' is not of the form package/type and cannot be processed" );
   }
 
@@ -109,7 +110,7 @@ get_typesupport_handle(
 {
   if ( nullptr == library )
   {
-    throw std::runtime_error( "rcpputils::SharedLibrary not initialized. Call get_typesupport_library first." );
+    throw BabelFishException( "rcpputils::SharedLibrary not initialized. Call get_typesupport_library first." );
   }
 
   std::string package_name;
@@ -129,7 +130,7 @@ get_typesupport_handle(
 
     if ( !library->has_symbol( symbol_name ))
     {
-      throw std::runtime_error{ " Symbol not found." };
+      throw std::runtime_error( std::string( " Could not find symbol for message type support handle getter. rcutils error: " ) + rcutils_get_error_string().str + ". This is probably due to https://github.com/ros2/rosidl_typesupport/pull/114 not being merged yet." );
     }
 
     const rosidl_message_type_support_t *(*get_ts)() = nullptr;
@@ -144,7 +145,7 @@ get_typesupport_handle(
   }
   catch ( std::runtime_error &e )
   {
-    throw std::runtime_error( rcutils_dynamic_loading_error.str() + e.what());
+    throw BabelFishException( rcutils_dynamic_loading_error.str() + e.what() );
   }
 }
 // ==== End of block ===
@@ -159,7 +160,7 @@ get_service_typesupport_handle(
 {
   if ( nullptr == library )
   {
-    throw std::runtime_error( "rcpputils::SharedLibrary not initialized. Call get_typesupport_library first." );
+    throw BabelFishException( "rcpputils::SharedLibrary not initialized. Call get_typesupport_library first." );
   }
 
   std::string package_name;
@@ -179,7 +180,7 @@ get_service_typesupport_handle(
                        package_name + "__" + (middle_module.empty() ? "srv" : middle_module) + "__" + type_name;
     if ( !library->has_symbol( symbol_name ))
     {
-      throw std::runtime_error{ std::string( " Symbol not found: " ) + rcutils_get_error_string().str };
+      throw std::runtime_error( std::string( " Could not find symbol for message type support handle getter. rcutils error: " ) + rcutils_get_error_string().str + ". This is probably due to https://github.com/ros2/rosidl_typesupport/pull/114 not being merged yet." );
     }
 
     const rosidl_service_type_support_t *(*get_ts)() = nullptr;
@@ -194,7 +195,7 @@ get_service_typesupport_handle(
   }
   catch ( std::runtime_error &e )
   {
-    throw std::runtime_error( rcutils_dynamic_loading_error.str() + e.what());
+    throw BabelFishException( rcutils_dynamic_loading_error.str() + e.what() );
   }
 }
 
@@ -227,7 +228,7 @@ get_action_typesupport_handle(
 
     if ( !library->has_symbol( symbol_name ))
     {
-      throw std::runtime_error{ std::string( " Symbol not found: " ) + rcutils_get_error_string().str };
+      throw std::runtime_error( std::string( " Could not find symbol for message type support handle getter. rcutils error: " ) + rcutils_get_error_string().str + ". This is probably due to https://github.com/ros2/rosidl_typesupport/pull/114 not being merged yet." );
     }
 
     const rosidl_action_type_support_t *(*get_ts)() = nullptr;
@@ -242,7 +243,7 @@ get_action_typesupport_handle(
   }
   catch ( std::runtime_error &e )
   {
-    throw std::runtime_error( rcutils_dynamic_loading_error.str() + e.what());
+    throw BabelFishException( rcutils_dynamic_loading_error.str() + e.what() );
   }
 }
 }
