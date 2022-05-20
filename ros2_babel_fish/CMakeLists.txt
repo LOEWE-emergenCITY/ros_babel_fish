@@ -149,7 +149,6 @@ if (BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(example_interfaces REQUIRED)
   find_package(geometry_msgs REQUIRED)
-  find_package(hector_ros2_utils REQUIRED)
   include_directories(include)
 
   ament_add_gtest(test_message test/message.cpp)
@@ -161,15 +160,15 @@ if (BUILD_TESTING)
   target_link_libraries(test_message_decoding ${PROJECT_NAME})
 
   ament_add_gtest(test_message_encoding test/message_encoding.cpp)
-  ament_target_dependencies(test_message_encoding geometry_msgs hector_ros2_utils ros2_babel_fish_test_msgs)
+  ament_target_dependencies(test_message_encoding geometry_msgs ros2_babel_fish_test_msgs)
   target_link_libraries(test_message_encoding ${PROJECT_NAME})
 
   ament_add_gtest(test_service_client test/service_client.cpp)
-  ament_target_dependencies(test_service_client example_interfaces hector_ros2_utils ros2_babel_fish_test_msgs)
+  ament_target_dependencies(test_service_client example_interfaces ros2_babel_fish_test_msgs)
   target_link_libraries(test_service_client ${PROJECT_NAME})
 
   ament_add_gtest(test_action_client test/action_client.cpp)
-  ament_target_dependencies(test_action_client example_interfaces hector_ros2_utils ros2_babel_fish_test_msgs)
+  ament_target_dependencies(test_action_client example_interfaces ros2_babel_fish_test_msgs)
   target_link_libraries(test_action_client ${PROJECT_NAME})
 endif ()
 

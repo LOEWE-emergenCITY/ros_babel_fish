@@ -20,7 +20,6 @@
   <depend>rcpputils</depend>
   <test_depend>example_interfaces</test_depend>
   <test_depend>geometry_msgs</test_depend>
-  <test_depend>hector_ros2_utils</test_depend>
   <test_depend>ros2_babel_fish_test_msgs</test_depend>
   <test_depend>std_msgs</test_depend>
 

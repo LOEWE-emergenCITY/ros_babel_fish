@@ -5,7 +5,6 @@
 #include "message_comparison.hpp"
 
 #include <ros2_babel_fish/babel_fish.hpp>
-#include <hector_ros2_utils/communication/wait_for.hpp>
 
 #include <gtest/gtest.h>
 #include <rclcpp/rclcpp.hpp>
@@ -15,6 +14,20 @@
 using namespace ros2_babel_fish;
 
 std::shared_ptr<rclcpp::Node> node;
+
+template<typename Message>
+std::shared_ptr<Message> waitForMessage( const std::string &topic )
+{
+  rclcpp::QoS qos = rclcpp::QoS( 1 ).transient_local();
+  auto sub = node->create_subscription<Message>( topic, qos, []( std::unique_ptr<Message> ) { } );
+  rclcpp::ThreadSafeWaitSet wait_set( std::vector<rclcpp::ThreadSafeWaitSet::SubscriptionEntry>{{ sub }} );
+  auto wait_result = wait_set.template wait();
+  if ( wait_result.kind() != rclcpp::WaitResultKind::Ready ) return nullptr;
+  std::shared_ptr<Message> result = std::make_shared<Message>();
+  rclcpp::MessageInfo info;
+  if ( !sub->take( *result, info )) return nullptr;
+  return result;
+}
 
 template<typename T, bool BOUNDED = false, bool FIXED_LENGTH = false>
 typename std::enable_if<!std::is_same<T, bool>::value and !std::is_same<T, std::string>::value, void>::type
@@ -329,24 +342,20 @@ protected:
 
 TEST_F( MessageEncodingTest, tests )
 {
-  auto msg_header = hector::waitForMessage<std_msgs::msg::Header>( "/test_message_encoding/header", node,
-                                                                   hector::latched());
+  auto msg_header = waitForMessage<std_msgs::msg::Header>( "/test_message_encoding/header" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( *std_msgs_header, msg_header ));
 
-  auto msg_point = hector::waitForMessage<geometry_msgs::msg::Point>( "/test_message_encoding/point", node,
-                                                                      hector::latched());
+  auto msg_point = waitForMessage<geometry_msgs::msg::Point>( "/test_message_encoding/point" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( *geometry_msgs_point, msg_point ));
 
-  auto msg_quaternion = hector::waitForMessage<geometry_msgs::msg::Quaternion>( "/test_message_encoding/quaternion",
-                                                                                node, hector::latched());
+  auto msg_quaternion = waitForMessage<geometry_msgs::msg::Quaternion>( "/test_message_encoding/quaternion" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( *geometry_msgs_quaternion, msg_quaternion ));
 
-  auto msg_pose = hector::waitForMessage<geometry_msgs::msg::Pose>( "/test_message_encoding/pose", node,
-                                                                    hector::latched());
+  auto msg_pose = waitForMessage<geometry_msgs::msg::Pose>( "/test_message_encoding/pose" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( *geometry_msgs_pose, msg_pose ));
 
-  auto msg_pose_stamped = hector::waitForMessage<geometry_msgs::msg::PoseStamped>(
-    "/test_message_encoding/pose_stamped", node, hector::latched());
+  auto msg_pose_stamped = waitForMessage<geometry_msgs::msg::PoseStamped>(
+    "/test_message_encoding/pose_stamped" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( *geometry_msgs_pose_stamped, msg_pose_stamped ));
   geometry_msgs::msg::PoseStamped pose_reference;
   pose_reference.header.stamp = rclcpp::Time( 13.37 );
@@ -356,24 +365,23 @@ TEST_F( MessageEncodingTest, tests )
   pose_reference.pose.position.z = 1.23;
   pose_reference.pose.orientation.w = 1.23;
 
-  auto msg_test_message = hector::waitForMessage<ros2_babel_fish_test_msgs::msg::TestMessage>(
-    "/test_message_encoding/test_message", node, hector::latched());
+  auto msg_test_message = waitForMessage<ros2_babel_fish_test_msgs::msg::TestMessage>(
+    "/test_message_encoding/test_message" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( *test_msg, msg_test_message ));
 }
 
 TEST_F( MessageEncodingTest, arrayTests )
 {
-  auto msg_header = hector::waitForMessage<std_msgs::msg::Header>( "/test_message_encoding/header", node,
-                                                                   hector::latched());
+  auto msg_header = waitForMessage<std_msgs::msg::Header>( "/test_message_encoding/header" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( *std_msgs_header, msg_header ));
 
-  auto msg_sub_test_array = hector::waitForMessage<ros2_babel_fish_test_msgs::msg::TestSubArray>(
-    "/test_message_encoding/sub_test_array", node, hector::latched());
+  auto msg_sub_test_array = waitForMessage<ros2_babel_fish_test_msgs::msg::TestSubArray>(
+    "/test_message_encoding/sub_test_array" );
   EXPECT_TRUE(
     MESSAGE_CONTENT_EQUAL((*test_array_msg)["subarrays"].as<CompoundArrayMessage>()[0], msg_sub_test_array ));
 
-  auto msg_test_array = hector::waitForMessage<ros2_babel_fish_test_msgs::msg::TestArray>(
-    "/test_message_encoding/test_array", node, hector::latched());
+  auto msg_test_array = waitForMessage<ros2_babel_fish_test_msgs::msg::TestArray>(
+    "/test_message_encoding/test_array" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( *test_array_msg, msg_test_array ));
 }
 
