@@ -18,6 +18,7 @@
   <depend>ament_index_cpp</depend>
   <depend>rclcpp</depend>
   <depend>rcpputils</depend>
+  <build_depend>action_tutorials_interfaces</build_depend>
   <test_depend>example_interfaces</test_depend>
   <test_depend>geometry_msgs</test_depend>
   <test_depend>ros2_babel_fish_test_msgs</test_depend>
