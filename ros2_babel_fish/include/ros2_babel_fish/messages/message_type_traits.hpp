@@ -6,6 +6,8 @@
 #define ROS2_BABEL_FISH_MESSAGE_TYPE_TRAITS_HPP
 
 #include "ros2_babel_fish/messages/message_types.hpp"
+#include <string>
+#include <vector>
 
 namespace ros2_babel_fish
 {
