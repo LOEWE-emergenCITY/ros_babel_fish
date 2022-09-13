@@ -8,10 +8,11 @@
 #include <rosidl_runtime_c/service_type_support_struct.h>
 #include <rosidl_runtime_c/action_type_support_struct.h>
 #include <rosidl_typesupport_introspection_cpp/message_introspection.hpp>
+#include <rosidl_typesupport_introspection_cpp/service_introspection.hpp>
 
 #include <assert.h>
 #include <memory>
-#include <rosidl_typesupport_introspection_cpp/service_introspection.hpp>
+#include <string>
 
 namespace ros2_babel_fish
 {
