@@ -4,10 +4,10 @@
 #ifndef ROS2_BABEL_FISH_VALUE_MESSAGE_HPP
 #define ROS2_BABEL_FISH_VALUE_MESSAGE_HPP
 
-#include "ros2_babel_fish/exceptions/babel_fish_exception.hpp"
-#include "ros2_babel_fish/messages/message.hpp"
-#include "ros2_babel_fish/macros.hpp"
 #include "message_type_traits.hpp"
+#include "ros2_babel_fish/exceptions/babel_fish_exception.hpp"
+#include "ros2_babel_fish/macros.hpp"
+#include "ros2_babel_fish/messages/message.hpp"
 
 #include <rclcpp/time.hpp>
 
@@ -19,15 +19,21 @@ class ValueMessage final : public Message
 {
   static constexpr MessageType _type = message_type_traits::message_type<T>::value;
   static_assert( _type != MessageTypes::None, "Invalid type parameter for ValueMessage!" );
+
 public:
   RCLCPP_SMART_PTR_DEFINITIONS( ValueMessage<T> )
 
   explicit ValueMessage( MessageMemberIntrospection member, std::shared_ptr<void> data )
-    : Message( _type, std::move( data )), member_( std::move( member )) { }
+      : Message( _type, std::move( data ) ), member_( std::move( member ) )
+  {
+  }
 
-  T getValue() const { return *reinterpret_cast<const T *>(this->data_ptr() + member_->offset_); }
+  T getValue() const { return *reinterpret_cast<const T *>( this->data_ptr() + member_->offset_ ); }
 
-  void setValue( T value ) { *reinterpret_cast<T *>(this->data_ptr() + member_->offset_) = value; }
+  void setValue( T value )
+  {
+    *reinterpret_cast<T *>( this->data_ptr() + member_->offset_ ) = value;
+  }
 
   ValueMessage<T> &operator=( const T &value )
   {
@@ -37,8 +43,9 @@ public:
 
   ValueMessage<T> &operator=( const ValueMessage<T> &other )
   {
-    if ( this == &other ) return *this;
-    setValue( other.getValue());
+    if ( this == &other )
+      return *this;
+    setValue( other.getValue() );
     return *this;
   }
 
@@ -46,12 +53,12 @@ protected:
   template<typename OT>
   void assignValue( const Message &other )
   {
-    Message::operator=( other.value<OT>());
+    Message::operator=( other.value<OT>() );
   }
 
   void _assign( const Message &other ) override
   {
-    if ( !message_type_traits::isValueType( other.type()))
+    if ( !message_type_traits::isValueType( other.type() ) )
       throw BabelFishException( "Tried to assign non-value message to value message!" );
     RBF2_TEMPLATE_CALL_VALUE_TYPES( assignValue, other.type(), other );
   }
@@ -70,7 +77,7 @@ inline void ValueMessage<std::string>::setValue( std::string value )
 {
   if ( member_->string_upper_bound_ != 0 && value.length() > member_->string_upper_bound_ )
     throw std::length_error( "Exceeded string upper bound!" );
-  *reinterpret_cast<std::string *>(data_ptr() + member_->offset_) = std::move( value );
+  *reinterpret_cast<std::string *>( data_ptr() + member_->offset_ ) = std::move( value );
 }
 
 template<>
@@ -78,8 +85,8 @@ inline void ValueMessage<std::wstring>::setValue( std::wstring value )
 {
   if ( member_->string_upper_bound_ != 0 && value.length() > member_->string_upper_bound_ )
     throw std::length_error( "Exceeded string upper bound!" );
-  *reinterpret_cast<std::wstring *>(data_ptr() + member_->offset_) = std::move( value );
+  *reinterpret_cast<std::wstring *>( data_ptr() + member_->offset_ ) = std::move( value );
 }
-} // ros2_babel_fish
+} // namespace ros2_babel_fish
 
-#endif //ROS2_BABEL_FISH_VALUE_MESSAGE_HPP
+#endif // ROS2_BABEL_FISH_VALUE_MESSAGE_HPP

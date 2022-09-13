@@ -16,13 +16,11 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-
 using namespace ros2_babel_fish;
 
 std::shared_ptr<rclcpp::Node> node;
 
-class MessageDecodingTest
-  : public ::testing::Test
+class MessageDecodingTest : public ::testing::Test
 {
 protected:
   void SetUp() override
@@ -62,8 +60,7 @@ protected:
     test_message.str = "test string";
     test_message.t = rclcpp::Time( 1337, 42 );
     test_message.d = rclcpp::Duration( 42, 1337 );
-    for ( int i = 0; i < 5; ++i )
-    {
+    for ( int i = 0; i < 5; ++i ) {
       geometry_msgs::msg::Point p;
       p.x = i * 0.1;
       p.y = 3 + i * 0.4;
@@ -90,20 +87,22 @@ protected:
     fillArray( test_array.subarrays, SEED++ );
 
     header_pub_ = node->create_publisher<std_msgs::msg::Header>( "/test_message_decoding/header", 1 );
-    point_pub_ = node->create_publisher<geometry_msgs::msg::Point>( "/test_message_decoding/point", 1 );
-    quaternion_pub_ = node->create_publisher<geometry_msgs::msg::Quaternion>( "/test_message_decoding/quaternion", 1 );
+    point_pub_ =
+        node->create_publisher<geometry_msgs::msg::Point>( "/test_message_decoding/point", 1 );
+    quaternion_pub_ = node->create_publisher<geometry_msgs::msg::Quaternion>(
+        "/test_message_decoding/quaternion", 1 );
     pose_pub_ = node->create_publisher<geometry_msgs::msg::Pose>( "/test_message_decoding/pose", 1 );
-    pose_stamped_pub_ = node->create_publisher<geometry_msgs::msg::PoseStamped>( "/test_message_decoding/pose_stamped",
-                                                                                 1 );
+    pose_stamped_pub_ = node->create_publisher<geometry_msgs::msg::PoseStamped>(
+        "/test_message_decoding/pose_stamped", 1 );
     test_message_pub_ = node->create_publisher<ros2_babel_fish_test_msgs::msg::TestMessage>(
-      "/test_message_decoding/test_message", 1 );
+        "/test_message_decoding/test_message", 1 );
     test_sub_array_pub_ = node->create_publisher<ros2_babel_fish_test_msgs::msg::TestSubArray>(
-      "/test_message_decoding/sub_test_array", 1 );
+        "/test_message_decoding/sub_test_array", 1 );
     test_array_pub_ = node->create_publisher<ros2_babel_fish_test_msgs::msg::TestArray>(
-      "/test_message_decoding/test_array", 1 );
+        "/test_message_decoding/test_array", 1 );
 
     using namespace std::chrono_literals;
-    publish_timer_ = node->create_wall_timer( 50ms, [ this ] { publish(); } );
+    publish_timer_ = node->create_wall_timer( 50ms, [this] { publish(); } );
   }
 
   void publish()
@@ -139,7 +138,6 @@ protected:
   rclcpp::TimerBase::SharedPtr publish_timer_;
 };
 
-
 TEST_F( MessageDecodingTest, tests )
 {
   using namespace std::chrono_literals;
@@ -147,89 +145,88 @@ TEST_F( MessageDecodingTest, tests )
   rclcpp::WaitSet set;
   set.add_guard_condition( cond );
   CompoundMessage::SharedPtr msg;
-  std::function<void( CompoundMessage::SharedPtr )> callback( [ &msg, &cond ]( const CompoundMessage::SharedPtr &m )
-                                                              {
-                                                                msg = m;
-                                                                cond->trigger();
-                                                              } );
-  BabelFishSubscription::SharedPtr subscription = fish.create_subscription( *node, "/test_message_decoding/header", 1,
-                                                                            callback );
+  std::function<void( CompoundMessage::SharedPtr )> callback(
+      [&msg, &cond]( const CompoundMessage::SharedPtr &m ) {
+        msg = m;
+        cond->trigger();
+      } );
+  BabelFishSubscription::SharedPtr subscription =
+      fish.create_subscription( *node, "/test_message_decoding/header", 1, callback );
   ASSERT_EQ( set.wait( 5s ).kind(), rclcpp::WaitResultKind::Ready );
   subscription.reset();
 
   ASSERT_EQ( msg->name(), "std_msgs/msg/Header" );
-  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( std_msgs_header, *msg ));
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( std_msgs_header, *msg ) );
 
   // Actual copy can be created with clone
   {
     CompoundMessage copy = msg->clone();
-    EXPECT_EQ( copy.name(), msg->name());
-    EXPECT_EQ( copy["frame_id"], (*msg)["frame_id"] );
+    EXPECT_EQ( copy.name(), msg->name() );
+    EXPECT_EQ( copy["frame_id"], ( *msg )["frame_id"] );
     copy["frame_id"] = "some_other_value";
-    EXPECT_NE( copy["frame_id"], (*msg)["frame_id"] );
+    EXPECT_NE( copy["frame_id"], ( *msg )["frame_id"] );
     std::shared_ptr<void> data = copy.type_erased_message();
-    EXPECT_NE( data, msg->type_erased_message());
+    EXPECT_NE( data, msg->type_erased_message() );
     copy = *msg;
     // Should still have separate but the same data pointer but now it should be equal to msg again.
-    EXPECT_EQ( data, copy.type_erased_message());
-    EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( std_msgs_header, copy ));
+    EXPECT_EQ( data, copy.type_erased_message() );
+    EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( std_msgs_header, copy ) );
   }
 
   // Copy constructor should construct a copy pointing to the same message
   CompoundMessage copy = *msg;
-  EXPECT_EQ( copy.name(), msg->name());
+  EXPECT_EQ( copy.name(), msg->name() );
 
-  EXPECT_EQ( copy["frame_id"], (*msg)["frame_id"] );
+  EXPECT_EQ( copy["frame_id"], ( *msg )["frame_id"] );
   copy["frame_id"] = "some_other_value";
-  EXPECT_EQ((*msg)["frame_id"], "some_other_value" );
-
+  EXPECT_EQ( ( *msg )["frame_id"], "some_other_value" );
 
   subscription = fish.create_subscription( *node, "/test_message_decoding/point", 1, callback );
   ASSERT_EQ( set.wait( 5s ).kind(), rclcpp::WaitResultKind::Ready );
   subscription.reset();
 
   ASSERT_EQ( msg->name(), "geometry_msgs/msg/Point" );
-  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( geometry_msgs_point, *msg ));
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( geometry_msgs_point, *msg ) );
 
   // Assignment should not work to different type
   EXPECT_THROW( copy = *msg, BabelFishException );
   // Move assignment should work
-  copy = std::move( CompoundMessage( *msg ));
-  EXPECT_EQ( copy.name(), msg->name());
+  copy = std::move( CompoundMessage( *msg ) );
+  EXPECT_EQ( copy.name(), msg->name() );
 
   // Create subscription with known type
-  subscription = fish.create_subscription( *node, "/test_message_decoding/quaternion", "geometry_msgs/msg/Quaternion",
-                                           1, callback );
+  subscription = fish.create_subscription( *node, "/test_message_decoding/quaternion",
+                                           "geometry_msgs/msg/Quaternion", 1, callback );
   ASSERT_EQ( set.wait( 5s ).kind(), rclcpp::WaitResultKind::Ready );
   subscription.reset();
 
   ASSERT_EQ( msg->name(), "geometry_msgs/msg/Quaternion" );
-  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( geometry_msgs_quaternion, *msg ));
-  EXPECT_EQ((*msg)["x"], geometry_msgs_quaternion.x );
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( geometry_msgs_quaternion, *msg ) );
+  EXPECT_EQ( ( *msg )["x"], geometry_msgs_quaternion.x );
 
   subscription = fish.create_subscription( *node, "/test_message_decoding/pose", 1, callback );
   ASSERT_EQ( set.wait( 5s ).kind(), rclcpp::WaitResultKind::Ready );
   subscription.reset();
 
   EXPECT_EQ( msg->name(), "geometry_msgs/msg/Pose" );
-  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( geometry_msgs_pose, *msg ));
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( geometry_msgs_pose, *msg ) );
 
-  subscription = fish.create_subscription( *node, "/test_message_decoding/pose_stamped", 1, callback );
+  subscription =
+      fish.create_subscription( *node, "/test_message_decoding/pose_stamped", 1, callback );
   ASSERT_EQ( set.wait( 5s ).kind(), rclcpp::WaitResultKind::Ready );
   subscription.reset();
 
   EXPECT_EQ( msg->name(), "geometry_msgs/msg/PoseStamped" );
-  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( geometry_msgs_pose_stamped, *msg ));
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( geometry_msgs_pose_stamped, *msg ) );
 
-
-  subscription = fish.create_subscription( *node, "/test_message_decoding/test_message", 1, callback );
+  subscription =
+      fish.create_subscription( *node, "/test_message_decoding/test_message", 1, callback );
   ASSERT_EQ( set.wait( 5s ).kind(), rclcpp::WaitResultKind::Ready );
   subscription.reset();
 
   ASSERT_EQ( msg->name(), "ros2_babel_fish_test_msgs/msg/TestMessage" );
-  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_message, *msg ));
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_message, *msg ) );
 }
-
 
 TEST_F( MessageDecodingTest, arrayTests )
 {
@@ -237,26 +234,25 @@ TEST_F( MessageDecodingTest, arrayTests )
   rclcpp::WaitSet set;
   set.add_guard_condition( cond );
   CompoundMessage::SharedPtr msg;
-  std::function<void( CompoundMessage::SharedPtr )> callback( [ &msg, &cond ]( const CompoundMessage::SharedPtr &m )
-                                                              {
-                                                                msg = m;
-                                                                cond->trigger();
-                                                              } );
-  BabelFishSubscription::SharedPtr subscription = fish.create_subscription( *node,
-                                                                            "/test_message_decoding/sub_test_array", 1,
-                                                                            callback );
+  std::function<void( CompoundMessage::SharedPtr )> callback(
+      [&msg, &cond]( const CompoundMessage::SharedPtr &m ) {
+        msg = m;
+        cond->trigger();
+      } );
+  BabelFishSubscription::SharedPtr subscription =
+      fish.create_subscription( *node, "/test_message_decoding/sub_test_array", 1, callback );
   ASSERT_EQ( set.wait().kind(), rclcpp::WaitResultKind::Ready );
   subscription.reset();
 
   ASSERT_EQ( msg->name(), "ros2_babel_fish_test_msgs/msg/TestSubArray" );
-  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_array.subarrays[0], *msg ));
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_array.subarrays[0], *msg ) );
 
   subscription = fish.create_subscription( *node, "/test_message_decoding/test_array", 1, callback );
   ASSERT_EQ( set.wait().kind(), rclcpp::WaitResultKind::Ready );
   subscription.reset();
 
   ASSERT_EQ( msg->name(), "ros2_babel_fish_test_msgs/msg/TestArray" );
-  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_array, *msg ));
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_array, *msg ) );
 }
 
 int main( int argc, char **argv )
@@ -264,10 +260,7 @@ int main( int argc, char **argv )
   testing::InitGoogleTest( &argc, argv );
   rclcpp::init( argc, argv );
   node = std::make_shared<rclcpp::Node>( "message_decoding_test" );
-  std::thread spinner( []()
-                       {
-                         rclcpp::spin( node );
-                       } );
+  std::thread spinner( []() { rclcpp::spin( node ); } );
   int result = RUN_ALL_TESTS();
   rclcpp::shutdown();
   spinner.join();

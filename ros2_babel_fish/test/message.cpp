@@ -17,9 +17,9 @@ using namespace std::chrono_literals;
 template<typename T>
 ::testing::AssertionResult compareArrays( const T *a, const T *b, size_t count )
 {
-  for ( size_t i = 0; i < count; ++i )
-  {
-    if ( a[i] == b[i] ) continue;
+  for ( size_t i = 0; i < count; ++i ) {
+    if ( a[i] == b[i] )
+      continue;
     return ::testing::AssertionFailure() << "Difference at index " << i << ":" << std::endl
                                          << "a[[" << i << "]: " << a[i] << std::endl
                                          << "b[" << i << "]: " << b[i];
@@ -30,9 +30,9 @@ template<typename T>
 template<typename T1, typename T2>
 ::testing::AssertionResult compareVectors( const T1 &a, const T2 &b, size_t count )
 {
-  for ( size_t i = 0; i < count; ++i )
-  {
-    if ( a[i] == b[i] ) continue;
+  for ( size_t i = 0; i < count; ++i ) {
+    if ( a[i] == b[i] )
+      continue;
     return ::testing::AssertionFailure() << "Difference at index " << i << ":" << std::endl
                                          << "a[[" << i << "]: " << a[i] << std::endl
                                          << "b[" << i << "]: " << b[i];
@@ -48,19 +48,20 @@ std::shared_ptr<void> createSharedWrapper( void *data )
 TEST( MessageTest, message )
 {
   rosidl_typesupport_introspection_cpp::MessageMember member;
-  MessageMemberIntrospection introspection( &member, nullptr ); // Wrapper since we don't load from a library here
+  MessageMemberIntrospection introspection(
+      &member, nullptr ); // Wrapper since we don't load from a library here
   member.offset_ = 0;
   // UINT8
   {
     member.type_id_ = MessageTypes::UInt8;
     uint8_t data = 42;
-    ValueMessage<uint8_t> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<uint8_t> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_THROW( vm["invalid"], BabelFishException );
     const Message &vmc = vm;
     EXPECT_THROW( vmc["answer"], BabelFishException );
     EXPECT_EQ( vm.value<uint8_t>(), 42U );
-    EXPECT_NO_THROW( vm = uint8_t( 55 ));
+    EXPECT_NO_THROW( vm = uint8_t( 55 ) );
     EXPECT_EQ( vmc.value<int32_t>(), 55 );
     EXPECT_THROW( vm = true, BabelFishException );
 
@@ -83,10 +84,10 @@ TEST( MessageTest, message )
   {
     member.type_id_ = MessageTypes::UInt16;
     uint16_t data = 42;
-    ValueMessage<uint16_t> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<uint16_t> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_EQ( vm.value<uint16_t>(), 42U );
-    EXPECT_NO_THROW( vm = uint16_t( 355 ));
+    EXPECT_NO_THROW( vm = uint16_t( 355 ) );
     EXPECT_EQ( vm.value<int32_t>(), 355 );
     EXPECT_EQ( data, 355U );
   }
@@ -95,10 +96,10 @@ TEST( MessageTest, message )
   {
     member.type_id_ = MessageTypes::UInt32;
     uint32_t data = 42;
-    ValueMessage<uint32_t> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<uint32_t> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_EQ( vm.value<uint32_t>(), 42U );
-    EXPECT_NO_THROW( vm = uint32_t( 133755 ));
+    EXPECT_NO_THROW( vm = uint32_t( 133755 ) );
     EXPECT_EQ( vm.value<int64_t>(), 133755 );
     EXPECT_EQ( data, 133755U );
   }
@@ -107,25 +108,25 @@ TEST( MessageTest, message )
   {
     member.type_id_ = MessageTypes::UInt64;
     uint64_t data = 42;
-    ValueMessage<uint64_t> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<uint64_t> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_EQ( vm.value<uint64_t>(), 42U );
-    EXPECT_NO_THROW( vm = uint64_t( 2 ) << uint64_t( 34U ));
-    EXPECT_EQ( vm.value<int64_t>(), int64_t( 2 ) << int64_t( 34 ));
-    EXPECT_EQ( data, uint64_t( 2 ) << uint64_t( 34 ));
+    EXPECT_NO_THROW( vm = uint64_t( 2 ) << uint64_t( 34U ) );
+    EXPECT_EQ( vm.value<int64_t>(), int64_t( 2 ) << int64_t( 34 ) );
+    EXPECT_EQ( data, uint64_t( 2 ) << uint64_t( 34 ) );
   }
 
   // INT8
   {
     member.type_id_ = MessageTypes::Int8;
     int8_t data = 42;
-    ValueMessage<int8_t> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<int8_t> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_THROW( vm["invalid"], BabelFishException );
     const Message &vmc = vm;
     EXPECT_THROW( vmc["answer"], BabelFishException );
     EXPECT_EQ( vm.value<int8_t>(), 42 );
-    EXPECT_NO_THROW( vm = int8_t( 55 ));
+    EXPECT_NO_THROW( vm = int8_t( 55 ) );
     EXPECT_EQ( vmc.value<int32_t>(), 55 );
     EXPECT_THROW( vm = true, BabelFishException );
 
@@ -146,10 +147,10 @@ TEST( MessageTest, message )
   {
     member.type_id_ = MessageTypes::Int16;
     int16_t data = 42;
-    ValueMessage<int16_t> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<int16_t> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_EQ( vm.value<int16_t>(), 42 );
-    EXPECT_NO_THROW( vm = int16_t( 129 ));
+    EXPECT_NO_THROW( vm = int16_t( 129 ) );
     EXPECT_EQ( vm.value<int32_t>(), 129 );
     EXPECT_EQ( data, 129 );
   }
@@ -158,10 +159,10 @@ TEST( MessageTest, message )
   {
     member.type_id_ = MessageTypes::Int32;
     int32_t data = 42;
-    ValueMessage<int32_t> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<int32_t> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_EQ( vm.value<int32_t>(), 42 );
-    EXPECT_NO_THROW( vm = int32_t( 70501 ));
+    EXPECT_NO_THROW( vm = int32_t( 70501 ) );
     EXPECT_EQ( vm.value<int32_t>(), 70501 );
     EXPECT_EQ( data, 70501 );
   }
@@ -170,25 +171,25 @@ TEST( MessageTest, message )
   {
     member.type_id_ = MessageTypes::Int64;
     int64_t data = 42;
-    ValueMessage<int64_t> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<int64_t> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_EQ( vm.value<int64_t>(), 42 );
-    EXPECT_NO_THROW( vm = static_cast<int64_t >(int64_t( 2 ) << int64_t( 34 )));
-    EXPECT_EQ( vm.value<int64_t>(), int64_t( 2 ) << int64_t( 34 ));
+    EXPECT_NO_THROW( vm = static_cast<int64_t>( int64_t( 2 ) << int64_t( 34 ) ) );
+    EXPECT_EQ( vm.value<int64_t>(), int64_t( 2 ) << int64_t( 34 ) );
     EXPECT_THROW( vm.value<int32_t>(), BabelFishException );
-    EXPECT_EQ( data, int64_t( 2 ) << int64_t( 34 ));
+    EXPECT_EQ( data, int64_t( 2 ) << int64_t( 34 ) );
   }
 
   // BOOL
   {
     member.type_id_ = MessageTypes::Bool;
     bool data = false;
-    ValueMessage<bool> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<bool> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
-    EXPECT_FALSE( vm.value<bool>());
+    EXPECT_FALSE( vm.value<bool>() );
     EXPECT_THROW( vm.value<int32_t>(), BabelFishException );
     EXPECT_NO_THROW( vm = true );
-    EXPECT_TRUE( vm.value<bool>());
+    EXPECT_TRUE( vm.value<bool>() );
     EXPECT_THROW( vm = 42, BabelFishException );
     EXPECT_EQ( data, true );
   }
@@ -197,10 +198,10 @@ TEST( MessageTest, message )
   {
     member.type_id_ = MessageTypes::Float;
     float data = 42.0;
-    ValueMessage<float> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<float> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_FLOAT_EQ( vm.value<float>(), 42.0f );
-    ASSERT_NO_THROW( vm.value<double>());
+    ASSERT_NO_THROW( vm.value<double>() );
     EXPECT_DOUBLE_EQ( vm.value<double>(), 42.0 );
     EXPECT_NO_THROW( vm = 50.0f );
     EXPECT_FLOAT_EQ( vm.value<float>(), 50.0f );
@@ -216,7 +217,7 @@ TEST( MessageTest, message )
   {
     member.type_id_ = MessageTypes::Double;
     double data = 42.0;
-    ValueMessage<double> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<double> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_DOUBLE_EQ( vm.value<double>(), 42.0 );
     EXPECT_THROW( vm.value<float>(), BabelFishException );
@@ -234,13 +235,13 @@ TEST( MessageTest, message )
   {
     member.type_id_ = MessageTypes::String;
     std::string data = "test";
-    ValueMessage<std::string> vm_in( introspection, createSharedWrapper( &data ));
+    ValueMessage<std::string> vm_in( introspection, createSharedWrapper( &data ) );
     Message &vm = vm_in;
     EXPECT_EQ( vm.value<std::string>(), "test" );
     vm = "the answer";
     EXPECT_NO_THROW( vm = "the answer" );
     EXPECT_EQ( vm.value<std::string>(), "the answer" );
-    EXPECT_NO_THROW( vm = std::string( "42" ));
+    EXPECT_NO_THROW( vm = std::string( "42" ) );
     EXPECT_EQ( vm.value<std::string>(), "42" );
     EXPECT_THROW( vm.value<int32_t>(), BabelFishException );
     EXPECT_THROW( vm.value<double>(), BabelFishException );
@@ -252,7 +253,8 @@ TEST( MessageTest, message )
   // COMPOUND
   {
     ros2_babel_fish::LocalTypeSupportProvider provider;
-    MessageTypeSupport::ConstSharedPtr type_support = provider.getMessageTypeSupport( "std_msgs/msg/Header" );
+    MessageTypeSupport::ConstSharedPtr type_support =
+        provider.getMessageTypeSupport( "std_msgs/msg/Header" );
     CompoundMessage m( *type_support );
     Message &vm = m;
     EXPECT_THROW( vm = 42, BabelFishException );
@@ -262,29 +264,29 @@ TEST( MessageTest, message )
 TEST( MessageTest, compoundMessage )
 {
   ros2_babel_fish::BabelFish fish;
-  MessageTypeSupport::ConstSharedPtr type_support = fish.get_message_type_support( "geometry_msgs/msg/PoseStamped" );
+  MessageTypeSupport::ConstSharedPtr type_support =
+      fish.get_message_type_support( "geometry_msgs/msg/PoseStamped" );
   geometry_msgs::msg::PoseStamped pose_msg;
   pose_msg.header.frame_id = "test_frame";
   pose_msg.header.stamp = rclcpp::Time( 42L, RCL_ROS_TIME );
   pose_msg.pose.position.x = 1;
   pose_msg.pose.position.y = 2;
   bool shared_pointer_alive = true;
-  std::shared_ptr<void> data( &pose_msg, [ &shared_pointer_alive ]( auto * )
-  {
-    shared_pointer_alive = false;
-  } );
-  auto msg = CompoundMessage::make_unique( *type_support, std::move( data ));
+  std::shared_ptr<void> data( &pose_msg,
+                              [&shared_pointer_alive]( auto * ) { shared_pointer_alive = false; } );
+  auto msg = CompoundMessage::make_unique( *type_support, std::move( data ) );
   ASSERT_TRUE( shared_pointer_alive );
 
   {
-    const auto &header = (*msg)["header"]; // Note that this would not keep the pointer alive since we only have a reference.
+    const auto &header =
+        ( *msg )["header"]; // Note that this would not keep the pointer alive since we only have a reference.
     EXPECT_EQ( header["frame_id"], "test_frame" );
-    EXPECT_EQ( header["stamp"], rclcpp::Time( 42L, RCL_ROS_TIME ));
+    EXPECT_EQ( header["stamp"], rclcpp::Time( 42L, RCL_ROS_TIME ) );
   }
   ASSERT_TRUE( shared_pointer_alive );
 
   {
-    auto pose = (*msg)["pose"].as<CompoundMessage>();
+    auto pose = ( *msg )["pose"].as<CompoundMessage>();
     msg.reset();
     ASSERT_TRUE( shared_pointer_alive );
     EXPECT_EQ( pose["position"]["x"], 1 );
@@ -296,61 +298,61 @@ TEST( MessageTest, compoundMessage )
 
 TEST( MessageTest, arrayMessage )
 {
-//  // Compound
-//  {
-//    BabelFish fish;
-//    CompoundArrayMessage am( fish.getMessageTypeSupport( "std_msgs/msg/Header" )->message_template );
-//    for ( int i = 0; i < 20; ++i )
-//    {
-//      auto &cm = am.appendEmpty();
-//      cm["stamp"] = rclcpp::Time( 20 * i );
-//      cm["frame_id"] = std::string( "frame " ) + std::to_string( i );
-//    }
-//    EXPECT_EQ( am.length(), 20U );
-//    EXPECT_THROW( am.assign( 20, nullptr ), BabelFishException );
-//
-//    CompoundArrayMessage am_copy( am.elementTemplate());
-//    for ( int i = 0; i < 10; ++i )
-//    {
-//      auto *cm = fish.createMessage( "std_msgs/msg/Header" )->clone();
-//      (*cm)["stamp"] = rclcpp::Time( 200 * i );
-//      (*cm)["frame_id"] = std::string( "copy frame " ) + std::to_string( i );
-//      am_copy.push_back( cm );
-//    }
-//    EXPECT_EQ( am_copy.length(), 10U );
-//    am_copy = am;
-//    EXPECT_EQ( am_copy.elementDatatype(), "std_msgs::msg::Header" );
-//    EXPECT_EQ( am_copy.length(), 20U );
-//
-//    auto *am_clone = dynamic_cast<CompoundArrayMessage *>(am.clone());
-//    EXPECT_EQ( am_clone->length(), 20U );
-//    am_clone->at( 0 )["frame_id"] = "different_frame";
-//    EXPECT_EQ( am_clone->at( 0 )["frame_id"].value<std::string>(), "different_frame" );
-//    EXPECT_EQ( am[0]["frame_id"].value<std::string>(), "frame 0" );
-//    delete am_clone;
-//
-//    CompoundArrayMessage different_am(
-//      fish.getMessageTypeSupport( "geometry_msgs/msg/Pose" )->message_template );
-//    EXPECT_THROW( am_copy = different_am, BabelFishException );
-//
-//
-//    ArrayMessage<Message> aa( MessageTypes::Array );
-//    aa.push_back( am.clone());
-//    aa.push_back( am_copy.clone());
-//    EXPECT_EQ( aa.length(), 2U );
-//    EXPECT_EQ( aa[0].as<CompoundArrayMessage>()[0]["frame_id"].value<std::string>(), "frame 0" );
-//    auto *aa_clone = dynamic_cast<ArrayMessage<Message> *>(aa.clone());
-//    ASSERT_NE( aa_clone, nullptr );
-//    EXPECT_EQ( aa_clone->length(), 2U );
-//    EXPECT_EQ( aa[0].as<CompoundArrayMessage>()[0]["frame_id"].value<std::string>(), "frame 0" );
-//    delete aa_clone;
-//  }
-//
-//  // FIXED SIZE
-//  {
-//    ArrayMessage<bool> am( 20, true );
-//    EXPECT_THROW( am.push_back( true ), BabelFishException );
-//  }
+  //  // Compound
+  //  {
+  //    BabelFish fish;
+  //    CompoundArrayMessage am( fish.getMessageTypeSupport( "std_msgs/msg/Header" )->message_template );
+  //    for ( int i = 0; i < 20; ++i )
+  //    {
+  //      auto &cm = am.appendEmpty();
+  //      cm["stamp"] = rclcpp::Time( 20 * i );
+  //      cm["frame_id"] = std::string( "frame " ) + std::to_string( i );
+  //    }
+  //    EXPECT_EQ( am.length(), 20U );
+  //    EXPECT_THROW( am.assign( 20, nullptr ), BabelFishException );
+  //
+  //    CompoundArrayMessage am_copy( am.elementTemplate());
+  //    for ( int i = 0; i < 10; ++i )
+  //    {
+  //      auto *cm = fish.createMessage( "std_msgs/msg/Header" )->clone();
+  //      (*cm)["stamp"] = rclcpp::Time( 200 * i );
+  //      (*cm)["frame_id"] = std::string( "copy frame " ) + std::to_string( i );
+  //      am_copy.push_back( cm );
+  //    }
+  //    EXPECT_EQ( am_copy.length(), 10U );
+  //    am_copy = am;
+  //    EXPECT_EQ( am_copy.elementDatatype(), "std_msgs::msg::Header" );
+  //    EXPECT_EQ( am_copy.length(), 20U );
+  //
+  //    auto *am_clone = dynamic_cast<CompoundArrayMessage *>(am.clone());
+  //    EXPECT_EQ( am_clone->length(), 20U );
+  //    am_clone->at( 0 )["frame_id"] = "different_frame";
+  //    EXPECT_EQ( am_clone->at( 0 )["frame_id"].value<std::string>(), "different_frame" );
+  //    EXPECT_EQ( am[0]["frame_id"].value<std::string>(), "frame 0" );
+  //    delete am_clone;
+  //
+  //    CompoundArrayMessage different_am(
+  //      fish.getMessageTypeSupport( "geometry_msgs/msg/Pose" )->message_template );
+  //    EXPECT_THROW( am_copy = different_am, BabelFishException );
+  //
+  //
+  //    ArrayMessage<Message> aa( MessageTypes::Array );
+  //    aa.push_back( am.clone());
+  //    aa.push_back( am_copy.clone());
+  //    EXPECT_EQ( aa.length(), 2U );
+  //    EXPECT_EQ( aa[0].as<CompoundArrayMessage>()[0]["frame_id"].value<std::string>(), "frame 0" );
+  //    auto *aa_clone = dynamic_cast<ArrayMessage<Message> *>(aa.clone());
+  //    ASSERT_NE( aa_clone, nullptr );
+  //    EXPECT_EQ( aa_clone->length(), 2U );
+  //    EXPECT_EQ( aa[0].as<CompoundArrayMessage>()[0]["frame_id"].value<std::string>(), "frame 0" );
+  //    delete aa_clone;
+  //  }
+  //
+  //  // FIXED SIZE
+  //  {
+  //    ArrayMessage<bool> am( 20, true );
+  //    EXPECT_THROW( am.push_back( true ), BabelFishException );
+  //  }
 }
 
 int main( int argc, char **argv )

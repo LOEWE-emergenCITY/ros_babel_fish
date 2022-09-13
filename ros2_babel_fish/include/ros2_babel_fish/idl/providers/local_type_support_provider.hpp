@@ -24,6 +24,6 @@ protected:
 
   ActionTypeSupport::ConstSharedPtr getActionTypeSupportImpl( const std::string &type ) const override;
 };
-} // ros2_babel_fish
+} // namespace ros2_babel_fish
 
 #endif // ROS2_BABEL_FISH_INTEGRATED_DESCRIPTION_PROVIDER_H

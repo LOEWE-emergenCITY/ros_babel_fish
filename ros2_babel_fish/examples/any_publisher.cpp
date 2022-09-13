@@ -1,10 +1,10 @@
 // Copyright (c) 2021 Stefan Fabian. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <ros2_babel_fish/babel_fish.hpp>
 #include <ros2_babel_fish/messages/array_message.hpp>
 #include <ros2_babel_fish/messages/compound_message.hpp>
 #include <ros2_babel_fish/messages/value_message.hpp>
-#include <ros2_babel_fish/babel_fish.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -17,17 +17,19 @@ using namespace std::chrono_literals; // So we can use s to specify the timer in
 class AnyPublisher : public rclcpp::Node
 {
 public:
-  AnyPublisher()
-    : Node( "any_publisher" ), count_( 0 ) { }
+  AnyPublisher() : Node( "any_publisher" ), count_( 0 ) { }
 
   void init()
   {
     fish_ = ros2_babel_fish::BabelFish::make_shared();
-    pub_string_ = fish_->create_publisher( *this, "/string", "std_msgs/msg/String", 10, rclcpp::PublisherOptions());
-    pub_pose_ = fish_->create_publisher( *this, "/pose", "geometry_msgs/msg/Pose", 10, rclcpp::PublisherOptions());
-    pub_posewcv_ = fish_->create_publisher( *this, "/pose_with_covariance", "geometry_msgs/PoseWithCovariance", 1,
-                                            rclcpp::PublisherOptions());
-    timer_ = this->create_wall_timer( 2s, std::bind( &AnyPublisher::timer_callback, this ));
+    pub_string_ = fish_->create_publisher( *this, "/string", "std_msgs/msg/String", 10,
+                                           rclcpp::PublisherOptions() );
+    pub_pose_ = fish_->create_publisher( *this, "/pose", "geometry_msgs/msg/Pose", 10,
+                                         rclcpp::PublisherOptions() );
+    pub_posewcv_ =
+        fish_->create_publisher( *this, "/pose_with_covariance", "geometry_msgs/PoseWithCovariance",
+                                 1, rclcpp::PublisherOptions() );
+    timer_ = this->create_wall_timer( 2s, std::bind( &AnyPublisher::timer_callback, this ) );
   }
 
 private:
@@ -37,7 +39,7 @@ private:
     // Publish a string message
     {
       CompoundMessage::SharedPtr message = fish_->create_message_shared( "std_msgs/msg/String" );
-      (*message)["data_ptr"] = "Hello World! " + std::to_string( ++count_ );
+      ( *message )["data_ptr"] = "Hello World! " + std::to_string( ++count_ );
 
       pub_string_->publish( *message );
     }

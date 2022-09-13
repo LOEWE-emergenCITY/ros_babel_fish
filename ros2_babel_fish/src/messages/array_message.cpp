@@ -7,5 +7,4 @@
 namespace ros2_babel_fish
 {
 
-
 }

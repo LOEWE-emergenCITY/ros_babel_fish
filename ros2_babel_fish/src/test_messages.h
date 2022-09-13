@@ -5,15 +5,14 @@
 #ifndef ROS2_BABEL_FISH_TEST_MESSAGES_H
 #define ROS2_BABEL_FISH_TEST_MESSAGES_H
 
-#include "ros2_babel_fish/babel_fish.hpp"
 #include "logging.hpp"
+#include "ros2_babel_fish/babel_fish.hpp"
 
-#include <ros2_babel_fish_test_msgs/msg/test_message.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <ros2_babel_fish_test_msgs/msg/test_message.hpp>
 
 namespace ros2_babel_fish
 {
-
 
 template<typename MessageType>
 void initMessage( MessageType &msg );
@@ -21,14 +20,11 @@ void initMessage( MessageType &msg );
 template<typename MessageType>
 bool isSameDatatype( const MessageType &, const ros2_babel_fish::CompoundMessage &fish_msg )
 {
-  if ( rosidl_generator_traits::data_type<MessageType>() != fish_msg.datatype())
-  {
+  if ( rosidl_generator_traits::data_type<MessageType>() != fish_msg.datatype() ) {
     RBF2_ERROR_STREAM( "Name of received message does not match!"
-                         << std::endl
-                         << "Expected: "
-                         << rosidl_generator_traits::name<MessageType>()
-                         << std::endl
-                         << "Received: " << fish_msg.datatype());
+                       << std::endl
+                       << "Expected: " << rosidl_generator_traits::name<MessageType>() << std::endl
+                       << "Received: " << fish_msg.datatype() );
     return false;
   }
   return true;
@@ -37,39 +33,36 @@ bool isSameDatatype( const MessageType &, const ros2_babel_fish::CompoundMessage
 template<typename T>
 bool fail( const std::string &field, const T &expected, const T &actual )
 {
-  RBF2_ERROR_STREAM( "Content of received message does not match at field: " << field << "!"
-                                                                             << std::endl
-                                                                             << "Expected: " << expected
-                                                                             << "Received: " << actual );
+  RBF2_ERROR_STREAM( "Content of received message does not match at field: "
+                     << field << "!" << std::endl
+                     << "Expected: " << expected << "Received: " << actual );
   return false;
 }
 
 template<>
 bool fail( const std::string &field, const rclcpp::Time &expected, const rclcpp::Time &actual )
 {
-  RBF2_ERROR_STREAM( "Content of received message does not match at field: " << field << "!"
-                                                                             << std::endl
-                                                                             << "Expected: " << expected.seconds()
-                                                                             << "Received: " << actual.seconds());
+  RBF2_ERROR_STREAM( "Content of received message does not match at field: "
+                     << field << "!" << std::endl
+                     << "Expected: " << expected.seconds() << "Received: " << actual.seconds() );
   return false;
 }
 
 template<>
 bool fail( const std::string &field, const rclcpp::Duration &expected, const rclcpp::Duration &actual )
 {
-  RBF2_ERROR_STREAM( "Content of received message does not match at field: " << field << "!"
-                                                                             << std::endl
-                                                                             << "Expected: " << expected.seconds()
-                                                                             << "Received: " << actual.seconds());
+  RBF2_ERROR_STREAM( "Content of received message does not match at field: "
+                     << field << "!" << std::endl
+                     << "Expected: " << expected.seconds() << "Received: " << actual.seconds() );
   return false;
 }
 
 template<typename MessageType>
 bool messagesAreEqual( const MessageType &msg, const CompoundMessage &translated );
 
-#define CHECK_MEMBER_EQUAL( NAME, TYPE ) \
-  if ( TYPE(msg.NAME) != translated[#NAME].value<TYPE>()) return fail( #NAME, TYPE(msg.NAME), translated[#NAME].value<TYPE>())
-
+#define CHECK_MEMBER_EQUAL( NAME, TYPE )                                                           \
+  if ( TYPE( msg.NAME ) != translated[#NAME].value<TYPE>() )                                       \
+  return fail( #NAME, TYPE( msg.NAME ), translated[#NAME].value<TYPE>() )
 
 template<>
 bool messagesAreEqual( const std_msgs::msg::Header &msg, const CompoundMessage &translated )
@@ -101,23 +94,29 @@ bool messagesAreEqual( const geometry_msgs::msg::Quaternion &msg, const Compound
 template<>
 bool messagesAreEqual( const geometry_msgs::msg::Pose &msg, const CompoundMessage &translated )
 {
-  if ( !messagesAreEqual( msg.position, translated["position"].as<CompoundMessage>())) return false;
-  if ( !messagesAreEqual( msg.orientation, translated["orientation"].as<CompoundMessage>())) return false;
+  if ( !messagesAreEqual( msg.position, translated["position"].as<CompoundMessage>() ) )
+    return false;
+  if ( !messagesAreEqual( msg.orientation, translated["orientation"].as<CompoundMessage>() ) )
+    return false;
   return true;
 }
 
 template<>
 bool messagesAreEqual( const geometry_msgs::msg::PoseStamped &msg, const CompoundMessage &translated )
 {
-  if ( !messagesAreEqual( msg.header, translated["header"].as<CompoundMessage>())) return false;
-  if ( !messagesAreEqual( msg.pose, translated["pose"].as<CompoundMessage>())) return false;
+  if ( !messagesAreEqual( msg.header, translated["header"].as<CompoundMessage>() ) )
+    return false;
+  if ( !messagesAreEqual( msg.pose, translated["pose"].as<CompoundMessage>() ) )
+    return false;
   return true;
 }
 
 template<>
-bool messagesAreEqual( const ros2_babel_fish_test_msgs::msg::TestMessage &msg, const CompoundMessage &translated )
+bool messagesAreEqual( const ros2_babel_fish_test_msgs::msg::TestMessage &msg,
+                       const CompoundMessage &translated )
 {
-  if ( !messagesAreEqual( msg.header, translated["header"].as<CompoundMessage>())) return false;
+  if ( !messagesAreEqual( msg.header, translated["header"].as<CompoundMessage>() ) )
+    return false;
   CHECK_MEMBER_EQUAL( b, bool );
   CHECK_MEMBER_EQUAL( f32, float );
   CHECK_MEMBER_EQUAL( f64, double );
@@ -171,15 +170,14 @@ void initMessage( ros2_babel_fish_test_msgs::msg::TestMessage &msg )
   msg.f64 = 2.718281828;
   msg.str = "test_string";
   msg.d = rclcpp::Duration( 42ns );
-  for ( size_t i = 0; i < 3; ++i )
-  {
+  for ( size_t i = 0; i < 3; ++i ) {
     geometry_msgs::msg::Point point;
-    point.x = static_cast<double>(i) / 0.3;
-    point.y = static_cast<double>(i) / 0.4;
-    point.z = static_cast<double>(i) / 0.15;
+    point.x = static_cast<double>( i ) / 0.3;
+    point.y = static_cast<double>( i ) / 0.4;
+    point.z = static_cast<double>( i ) / 0.15;
     msg.point_arr.push_back( point );
   }
 }
-}
+} // namespace ros2_babel_fish
 
-#endif //ROS2_BABEL_FISH_TEST_MESSAGES_H
+#endif // ROS2_BABEL_FISH_TEST_MESSAGES_H

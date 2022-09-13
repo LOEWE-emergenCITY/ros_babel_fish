@@ -26,36 +26,36 @@ public:
   ActionTypeSupport::ConstSharedPtr getActionTypeSupport( const std::string &type ) const;
 
 protected:
-
   //! Implementations should call registerMessage if the type support can be cached which is usually the case.
-  virtual MessageTypeSupport::ConstSharedPtr getMessageTypeSupportImpl( const std::string &type ) const = 0;
+  virtual MessageTypeSupport::ConstSharedPtr
+  getMessageTypeSupportImpl( const std::string &type ) const = 0;
 
-  virtual ServiceTypeSupport::ConstSharedPtr getServiceTypeSupportImpl( const std::string &type ) const = 0;
+  virtual ServiceTypeSupport::ConstSharedPtr
+  getServiceTypeSupportImpl( const std::string &type ) const = 0;
 
-  virtual ActionTypeSupport::ConstSharedPtr getActionTypeSupportImpl( const std::string &type ) const = 0;
+  virtual ActionTypeSupport::ConstSharedPtr
+  getActionTypeSupportImpl( const std::string &type ) const = 0;
 
-  MessageTypeSupport::ConstSharedPtr registerMessage( const std::string &name,
-                                                      const std::shared_ptr<void> &type_support_library,
-                                                      rosidl_message_type_support_t type_support,
-                                                      const std::shared_ptr<void> &introspection_type_support_library,
-                                                      rosidl_message_type_support_t introspection_type_support ) const;
+  MessageTypeSupport::ConstSharedPtr
+  registerMessage( const std::string &name, const std::shared_ptr<void> &type_support_library,
+                   rosidl_message_type_support_t type_support,
+                   const std::shared_ptr<void> &introspection_type_support_library,
+                   rosidl_message_type_support_t introspection_type_support ) const;
 
-  ServiceTypeSupport::ConstSharedPtr registerService( const std::string &name,
-                                                      const std::shared_ptr<void> &type_support_library,
-                                                      rosidl_service_type_support_t type_support,
-                                                      const std::shared_ptr<void> &introspection_type_support_library,
-                                                      rosidl_service_type_support_t introspection_type_support ) const;
+  ServiceTypeSupport::ConstSharedPtr
+  registerService( const std::string &name, const std::shared_ptr<void> &type_support_library,
+                   rosidl_service_type_support_t type_support,
+                   const std::shared_ptr<void> &introspection_type_support_library,
+                   rosidl_service_type_support_t introspection_type_support ) const;
 
-  ActionTypeSupport::ConstSharedPtr registerAction( const std::string &name,
-                                                    ActionTypeSupport::ConstSharedPtr type_support ) const;
-
+  ActionTypeSupport::ConstSharedPtr
+  registerAction( const std::string &name, ActionTypeSupport::ConstSharedPtr type_support ) const;
 
 private:
-
   mutable std::unordered_map<std::string, MessageTypeSupport::ConstSharedPtr> message_type_supports_;
   mutable std::unordered_map<std::string, ServiceTypeSupport::ConstSharedPtr> service_type_supports_;
   mutable std::unordered_map<std::string, ActionTypeSupport::ConstSharedPtr> action_type_supports_;
 };
-} // ros2_babel_fish
+} // namespace ros2_babel_fish
 
 #endif // ROS2_BABEL_FISH_DESCRIPTION_PROVIDER_H

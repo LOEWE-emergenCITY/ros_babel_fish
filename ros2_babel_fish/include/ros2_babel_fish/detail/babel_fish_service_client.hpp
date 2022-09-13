@@ -4,9 +4,9 @@
 #ifndef ROS2_BABEL_FISH_BABEL_FISH_SERVICE_CLIENT_HPP
 #define ROS2_BABEL_FISH_BABEL_FISH_SERVICE_CLIENT_HPP
 
+#include <rclcpp/node.hpp>
 #include <ros2_babel_fish/idl/type_support.hpp>
 #include <ros2_babel_fish/messages/compound_message.hpp>
-#include <rclcpp/node.hpp>
 
 namespace ros2_babel_fish
 {
@@ -42,48 +42,35 @@ public:
 
   SharedFuture async_send_request( SharedRequest request );
 
-
-  template<
-    typename CallbackT,
-    typename std::enable_if<
-      rclcpp::function_traits::same_arguments<CallbackT, CallbackType>::value
-    >::type * = nullptr
-  >
-  SharedFuture
-  async_send_request( const SharedRequest &request, CallbackT &&cb )
+  template<typename CallbackT, typename std::enable_if<rclcpp::function_traits::same_arguments<
+                                   CallbackT, CallbackType>::value>::type * = nullptr>
+  SharedFuture async_send_request( const SharedRequest &request, CallbackT &&cb )
   {
     std::lock_guard<std::mutex> lock( pending_requests_mutex_ );
     int64_t sequence_number;
-    rcl_ret_t ret = rcl_send_request( get_client_handle().get(), request->type_erased_message().get(),
-                                      &sequence_number );
-    if ( RCL_RET_OK != ret )
-    {
+    rcl_ret_t ret = rcl_send_request( get_client_handle().get(),
+                                      request->type_erased_message().get(), &sequence_number );
+    if ( RCL_RET_OK != ret ) {
       rclcpp::exceptions::throw_from_rcl_error( ret, "failed to send request_template" );
     }
 
     SharedPromise call_promise = std::make_shared<Promise>();
-    SharedFuture f( call_promise->get_future());
+    SharedFuture f( call_promise->get_future() );
     pending_requests_[sequence_number] =
-      std::make_tuple( call_promise, std::forward<CallbackType>( cb ), f );
+        std::make_tuple( call_promise, std::forward<CallbackType>( cb ), f );
     return f;
   }
 
-  template<
-    typename CallbackT,
-    typename std::enable_if
-      <rclcpp::function_traits::same_arguments<CallbackT, CallbackWithRequestType>::value
-      >::type * = nullptr
-  >
-  SharedFutureWithRequest
-  async_send_request( SharedRequest request, CallbackT &&cb )
+  template<typename CallbackT, typename std::enable_if<rclcpp::function_traits::same_arguments<
+                                   CallbackT, CallbackWithRequestType>::value>::type * = nullptr>
+  SharedFutureWithRequest async_send_request( SharedRequest request, CallbackT &&cb )
   {
     SharedPromiseWithRequest promise = std::make_shared<PromiseWithRequest>();
-    SharedFutureWithRequest future_with_request( promise->get_future());
+    SharedFutureWithRequest future_with_request( promise->get_future() );
 
-    auto wrapping_cb = [ future_with_request, promise, request, &cb ]( const SharedFuture &future )
-    {
+    auto wrapping_cb = [future_with_request, promise, request, &cb]( const SharedFuture &future ) {
       auto response = future.get();
-      promise->set_value( std::make_pair( request, response ));
+      promise->set_value( std::make_pair( request, response ) );
       cb( future_with_request );
     };
 
@@ -92,8 +79,8 @@ public:
     return future_with_request;
   }
 
-
-  void handle_response( std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<void> response ) override;
+  void handle_response( std::shared_ptr<rmw_request_id_t> request_header,
+                        std::shared_ptr<void> response ) override;
 
 private:
   RCLCPP_DISABLE_COPY( BabelFishServiceClient )
@@ -102,6 +89,6 @@ private:
   ServiceTypeSupport::ConstSharedPtr type_support_;
   std::mutex pending_requests_mutex_;
 };
-}
+} // namespace ros2_babel_fish
 
-#endif //ROS2_BABEL_FISH_BABEL_FISH_SERVICE_CLIENT_HPP
+#endif // ROS2_BABEL_FISH_BABEL_FISH_SERVICE_CLIENT_HPP

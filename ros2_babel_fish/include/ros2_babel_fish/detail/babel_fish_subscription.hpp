@@ -20,12 +20,12 @@ class BabelFishSubscription : public rclcpp::SubscriptionBase
 public:
   RCLCPP_SMART_PTR_DEFINITIONS( BabelFishSubscription )
 
-  BabelFishSubscription( rclcpp::node_interfaces::NodeBaseInterface *node,
-                         MessageTypeSupport::ConstSharedPtr type_support,
-                         const std::string &topic_name,
-                         const rclcpp::QoS &qos,
-                         rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
-                         const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> & options );
+  BabelFishSubscription(
+      rclcpp::node_interfaces::NodeBaseInterface *node,
+      MessageTypeSupport::ConstSharedPtr type_support, const std::string &topic_name,
+      const rclcpp::QoS &qos,
+      rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
+      const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options );
 
   ~BabelFishSubscription() override;
 
@@ -33,7 +33,8 @@ public:
 
   std::shared_ptr<rclcpp::SerializedMessage> create_serialized_message() override;
 
-  void handle_message( std::shared_ptr<void> &message, const rclcpp::MessageInfo &message_info ) override;
+  void handle_message( std::shared_ptr<void> &message,
+                       const rclcpp::MessageInfo &message_info ) override;
 
   void handle_loaned_message( void *loaned_message, const rclcpp::MessageInfo &message_info ) override;
 
@@ -53,6 +54,6 @@ private:
   MessageTypeSupport::ConstSharedPtr type_support_;
   rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback_;
 };
-}
+} // namespace ros2_babel_fish
 
-#endif //ROS2_BABEL_FISH_BABEL_FISH_SUBSCRIPTION_HPP
+#endif // ROS2_BABEL_FISH_BABEL_FISH_SUBSCRIPTION_HPP

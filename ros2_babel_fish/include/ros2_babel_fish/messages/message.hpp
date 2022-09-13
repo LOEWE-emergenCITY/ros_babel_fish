@@ -7,10 +7,10 @@
 #include "ros2_babel_fish/exceptions/babel_fish_exception.hpp"
 #include "ros2_babel_fish/macros.hpp"
 
-#include <rclcpp/time.hpp>
-#include <rclcpp/macros.hpp>
 #include <builtin_interfaces/msg/duration.hpp>
 #include <builtin_interfaces/msg/time.hpp>
+#include <rclcpp/macros.hpp>
+#include <rclcpp/time.hpp>
 
 #include <memory>
 
@@ -35,20 +35,22 @@ public:
 
   /**
    * Convenience method to obtain the content of a ValueMessage as the given type.
-   * A type conversion is done if the type doesn't match exactly. If the target type can not fit the source type, a
-   * warning is printed.
+   * A type conversion is done if the type doesn't match exactly. If the target type can not fit the
+   * source type, a warning is printed.
    *
    * @tparam T The type as which the value is retrieved
    * @return The value casted to the given type T
    *
    * @throws BabelFishException If the message is not a ValueMessage
-   * @throws BabelFishException If the type of the ValueMessage can not be casted to a different type which is the case for bool, std::string, ros::Time and ros::Duration
+   * @throws BabelFishException If the type of the ValueMessage can not be casted to a different
+   * type which is the case for bool, std::string, ros::Time and ros::Duration
    */
   template<typename T>
   T value() const
   {
     auto result = std::dynamic_pointer_cast<T>( data_ );
-    if ( !result ) throw BabelFishException( "Invalid cast!" );
+    if ( !result )
+      throw BabelFishException( "Invalid cast!" );
     return *result;
   }
 
@@ -67,8 +69,9 @@ public:
   template<typename T>
   T &as()
   {
-    T *result = dynamic_cast<T *>(this);
-    if ( result == nullptr ) throw BabelFishException( "Tried to cast message to incompatible type!" );
+    T *result = dynamic_cast<T *>( this );
+    if ( result == nullptr )
+      throw BabelFishException( "Tried to cast message to incompatible type!" );
     return *result;
   }
 
@@ -76,8 +79,9 @@ public:
   template<typename T>
   const T &as() const
   {
-    const T *result = dynamic_cast<const T *>(this);
-    if ( result == nullptr ) throw BabelFishException( "Tried to cast message to incompatible type!" );
+    const T *result = dynamic_cast<const T *>( this );
+    if ( result == nullptr )
+      throw BabelFishException( "Tried to cast message to incompatible type!" );
     return *result;
   }
 
@@ -181,9 +185,12 @@ protected:
 
   virtual void _assign( const Message &other ) = 0;
 
-  unsigned char *data_ptr() { return reinterpret_cast<unsigned char *>(data_.get()); }
+  unsigned char *data_ptr() { return reinterpret_cast<unsigned char *>( data_.get() ); }
 
-  const unsigned char *data_ptr() const { return reinterpret_cast<const unsigned char *>(data_.get()); }
+  const unsigned char *data_ptr() const
+  {
+    return reinterpret_cast<const unsigned char *>( data_.get() );
+  }
 
   std::shared_ptr<void> data_;
   MessageType type_;
@@ -191,10 +198,8 @@ protected:
   friend class CompoundMessage;
 
   template<bool, bool>
-  friend
-  class CompoundArrayMessage_;
+  friend class CompoundArrayMessage_;
 };
-
 
 template<>
 bool Message::value() const;
@@ -248,24 +253,22 @@ rclcpp::Time Message::value() const;
 template<>
 rclcpp::Duration Message::value() const;
 
-
 // Equality comparison needs to come after value specializations
 
 namespace impl
 {
 template<typename X>
-struct PassThrough
-{
+struct PassThrough {
   typedef X type;
 };
 
 // Make sure we only compile possible comparisons.
 // Looks more complicated than it is but the base implementation just makes sure we don't compare signed and unsigned
 template<typename T>
-struct EqHelper
-{
+struct EqHelper {
   template<typename U>
-  using is_same_sign = std::integral_constant<bool, std::is_signed<T>::value == std::is_signed<U>::value>;
+  using is_same_sign =
+      std::integral_constant<bool, std::is_signed<T>::value == std::is_signed<U>::value>;
 
   template<typename U>
   static typename std::enable_if<std::is_arithmetic<U>::value && is_same_sign<U>::value, void>::type
@@ -276,12 +279,11 @@ struct EqHelper
 
   template<typename U>
   static typename std::enable_if<
-    std::is_arithmetic<U>::value && !is_same_sign<U>::value && std::is_signed<U>::value, void>::type
+      std::is_arithmetic<U>::value && !is_same_sign<U>::value && std::is_signed<U>::value, void>::type
   equal( const Message *m, const U &other, bool &result )
   {
     // Different sign and U signed so T is unsigned
-    if ( other < 0 )
-    {
+    if ( other < 0 ) {
       result = false; // T can't be negative so no need to check
       return;
     }
@@ -289,18 +291,21 @@ struct EqHelper
     using SignedT = typename std::common_type<U, typename std::make_signed<T>::type>::type;
     const T &val = m->template value<T>();
     // val has to be able to fit into the SignedT type, this may have inaccuracies with some floating point types/values.
-    result = val <= static_cast<T>(std::numeric_limits<SignedT>::max()) && static_cast<SignedT>(val) == other;
+    result = val <= static_cast<T>( std::numeric_limits<SignedT>::max() ) &&
+             static_cast<SignedT>( val ) == other;
   }
 
   template<typename U>
   static typename std::enable_if<
-    std::is_arithmetic<U>::value && !is_same_sign<U>::value && !std::is_signed<U>::value, void>::type
+      std::is_arithmetic<U>::value && !is_same_sign<U>::value && !std::is_signed<U>::value, void>::type
   equal( const Message *m, const U &other, bool &result )
   {
     // Different sign and U unsigned so T is signed
     using SignedU = typename std::make_signed<U>::type;
-    if ( other > static_cast<U>(std::numeric_limits<SignedU>::max())) result = false;
-    else result = m->template value<T>() == static_cast<SignedU>(other);
+    if ( other > static_cast<U>( std::numeric_limits<SignedU>::max() ) )
+      result = false;
+    else
+      result = m->template value<T>() == static_cast<SignedU>( other );
   }
 
   template<typename U>
@@ -312,8 +317,7 @@ struct EqHelper
 };
 
 template<>
-struct EqHelper<bool>
-{
+struct EqHelper<bool> {
   template<typename U>
   static typename std::enable_if<std::is_convertible<U, bool>::value, void>::type
   equal( const Message *m, const U &other, bool &result )
@@ -330,8 +334,7 @@ struct EqHelper<bool>
 };
 
 template<>
-struct EqHelper<std::string>
-{
+struct EqHelper<std::string> {
   template<typename U>
   static typename std::enable_if<std::is_convertible<U, std::string>::value, void>::type
   equal( const Message *m, const U &other, bool &result )
@@ -348,8 +351,7 @@ struct EqHelper<std::string>
 };
 
 template<>
-struct EqHelper<std::wstring>
-{
+struct EqHelper<std::wstring> {
   template<typename U>
   static typename std::enable_if<std::is_convertible<U, std::wstring>::value, void>::type
   equal( const Message *m, const U &other, bool &result )
@@ -366,8 +368,7 @@ struct EqHelper<std::wstring>
 };
 
 template<>
-struct EqHelper<CompoundMessage>
-{
+struct EqHelper<CompoundMessage> {
   template<typename U>
   static typename std::enable_if<std::is_base_of<Message, U>::value, void>::type
   equal( const Message *m, const U &other, bool &result )
@@ -384,8 +385,7 @@ struct EqHelper<CompoundMessage>
 };
 
 template<>
-struct EqHelper<ArrayMessageBase>
-{
+struct EqHelper<ArrayMessageBase> {
   template<typename U>
   static typename std::enable_if<std::is_base_of<Message, U>::value, void>::type
   equal( const Message *m, const U &other, bool &result )
@@ -400,7 +400,7 @@ struct EqHelper<ArrayMessageBase>
     result = false;
   }
 };
-}
+} // namespace impl
 
 template<typename T, typename U>
 void Message::checkValueEqual( const U &other, bool &result ) const
@@ -419,8 +419,8 @@ bool Message::operator==( const T &other ) const
 template<typename T>
 bool Message::operator!=( const T &other ) const
 {
-  return !(*this == other);
+  return !( *this == other );
 }
-} // ros2_babel_fish
+} // namespace ros2_babel_fish
 
-#endif //ROS2_BABEL_FISH_MESSAGE_HPP
+#endif // ROS2_BABEL_FISH_MESSAGE_HPP

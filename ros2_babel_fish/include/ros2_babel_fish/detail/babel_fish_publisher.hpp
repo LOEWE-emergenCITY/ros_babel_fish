@@ -28,9 +28,10 @@ public:
                       const rclcpp::QoS &qos, const rclcpp::PublisherOptions &options );
 
   /// Called post construction, so that construction may continue after shared_from_this() works.
-  virtual void post_init_setup( rclcpp::node_interfaces::NodeBaseInterface *node_base,
-                                const std::string &topic, const rclcpp::QoS &qos,
-                                const rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> &options );
+  virtual void
+  post_init_setup( rclcpp::node_interfaces::NodeBaseInterface *node_base, const std::string &topic,
+                   const rclcpp::QoS &qos,
+                   const rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> &options );
 
   virtual void publish( std::unique_ptr<CompoundMessage> msg );
 
@@ -45,7 +46,6 @@ private:
 
   void do_serialized_publish( const rcl_serialized_message_t *serialized_msg );
 
-
   /// Copy of original options passed during construction.
   /**
    * It is important to save a copy of this so that the rmw payload which it
@@ -53,7 +53,6 @@ private:
    */
   const rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> options_;
 };
-}
+} // namespace ros2_babel_fish
 
-
-#endif //ROS2_BABEL_FISH_BABEL_FISH_PUBLISHER_HPP
+#endif // ROS2_BABEL_FISH_BABEL_FISH_PUBLISHER_HPP

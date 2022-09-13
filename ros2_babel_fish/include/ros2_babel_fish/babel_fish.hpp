@@ -4,12 +4,12 @@
 #ifndef ROS2_BABEL_FISH_BABEL_FISH_HPP
 #define ROS2_BABEL_FISH_BABEL_FISH_HPP
 
-#include "ros2_babel_fish/idl/type_support_provider.hpp"
 #include "ros2_babel_fish/detail/babel_fish_action_client.hpp"
 #include "ros2_babel_fish/detail/babel_fish_publisher.hpp"
 #include "ros2_babel_fish/detail/babel_fish_service.hpp"
 #include "ros2_babel_fish/detail/babel_fish_service_client.hpp"
 #include "ros2_babel_fish/detail/babel_fish_subscription.hpp"
+#include "ros2_babel_fish/idl/type_support_provider.hpp"
 #include "ros2_babel_fish/messages/array_message.hpp"
 #include "ros2_babel_fish/messages/compound_message.hpp"
 #include "ros2_babel_fish/messages/value_message.hpp"
@@ -30,13 +30,12 @@ public:
 
   /*!
    * Constructs an instance of BabelFish with a new instance of the default description provider.
-   * If you have to use multiple BabelFish instances, it is recommended to share the TypeSupportProvider to
-   * prevent multiple look ups of the same message.
+   * If you have to use multiple BabelFish instances, it is recommended to share the
+   * TypeSupportProvider to prevent multiple look ups of the same message.
    */
   BabelFish();
 
   explicit BabelFish( std::vector<TypeSupportProvider::SharedPtr> type_support_providers );
-
 
   ~BabelFish();
 
@@ -44,19 +43,19 @@ public:
   template<typename CallbackT>
   BabelFishSubscription::SharedPtr
   create_subscription( rclcpp::Node &node, const std::string &topic, const rclcpp::QoS &qos,
-                       CallbackT &&callback,
-                       rclcpp::CallbackGroup::SharedPtr group = nullptr,
+                       CallbackT &&callback, rclcpp::CallbackGroup::SharedPtr group = nullptr,
                        rclcpp::SubscriptionOptions options = {},
-                       std::chrono::nanoseconds timeout = std::chrono::nanoseconds( -1 ))
+                       std::chrono::nanoseconds timeout = std::chrono::nanoseconds( -1 ) )
   {
 #if RCLCPP_VERSION_MAJOR >= 9
     rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> any_callback;
 #else
-    rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> any_callback( options.get_allocator());
+    rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> any_callback(
+        options.get_allocator() );
 #endif
-    any_callback.set( std::forward<CallbackT>( callback ));
-    return create_subscription( node, topic, qos, any_callback, std::move( group ), std::move( options ),
-                                timeout );
+    any_callback.set( std::forward<CallbackT>( callback ) );
+    return create_subscription( node, topic, qos, any_callback, std::move( group ),
+                                std::move( options ), timeout );
   }
 
   /*!
@@ -70,28 +69,29 @@ public:
    * @throws BabelFishException If the message type for the given topic could not be loaded or a subscription could not
    *   be created for any other reason.
    */
-  BabelFishSubscription::SharedPtr
-  create_subscription( rclcpp::Node &node, const std::string &topic, const rclcpp::QoS &qos,
-                       rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
-                       rclcpp::CallbackGroup::SharedPtr group = nullptr,
-                       rclcpp::SubscriptionOptions options = {},
-                       std::chrono::nanoseconds timeout = std::chrono::nanoseconds( -1 ));
+  BabelFishSubscription::SharedPtr create_subscription(
+      rclcpp::Node &node, const std::string &topic, const rclcpp::QoS &qos,
+      rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
+      rclcpp::CallbackGroup::SharedPtr group = nullptr, rclcpp::SubscriptionOptions options = {},
+      std::chrono::nanoseconds timeout = std::chrono::nanoseconds( -1 ) );
 
   //! Wrapper for create_subscription using type.
   template<typename CallbackT>
   BabelFishSubscription::SharedPtr
-  create_subscription( rclcpp::Node &node, const std::string &topic, const std::string &type, const rclcpp::QoS &qos,
-                       CallbackT &&callback,
+  create_subscription( rclcpp::Node &node, const std::string &topic, const std::string &type,
+                       const rclcpp::QoS &qos, CallbackT &&callback,
                        rclcpp::CallbackGroup::SharedPtr group = nullptr,
                        rclcpp::SubscriptionOptions options = {} )
   {
 #if RCLCPP_VERSION_MAJOR >= 9
     rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> any_callback;
 #else
-    rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> any_callback( options.get_allocator());
+    rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> any_callback(
+        options.get_allocator() );
 #endif
-    any_callback.set( std::forward<CallbackT>( callback ));
-    return create_subscription( node, topic, type, qos, any_callback, std::move( group ), std::move( options ));
+    any_callback.set( std::forward<CallbackT>( callback ) );
+    return create_subscription( node, topic, type, qos, any_callback, std::move( group ),
+                                std::move( options ) );
   }
 
   /*!
@@ -105,24 +105,24 @@ public:
    * @throws BabelFishException If the given message type could not be loaded or a subscription could not
    *   be created for any other reason.
    */
-  BabelFishSubscription::SharedPtr
-  create_subscription( rclcpp::Node &node, const std::string &topic, const std::string &type, const rclcpp::QoS &qos,
-                       rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
-                       rclcpp::CallbackGroup::SharedPtr group = nullptr,
-                       rclcpp::SubscriptionOptions options = {} );
+  BabelFishSubscription::SharedPtr create_subscription(
+      rclcpp::Node &node, const std::string &topic, const std::string &type, const rclcpp::QoS &qos,
+      rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
+      rclcpp::CallbackGroup::SharedPtr group = nullptr, rclcpp::SubscriptionOptions options = {} );
 
-  BabelFishPublisher::SharedPtr
-  create_publisher( rclcpp::Node &node, const std::string &topic, const std::string &type, const rclcpp::QoS &qos,
-                    rclcpp::PublisherOptions options = {} );
+  BabelFishPublisher::SharedPtr create_publisher( rclcpp::Node &node, const std::string &topic,
+                                                  const std::string &type, const rclcpp::QoS &qos,
+                                                  rclcpp::PublisherOptions options = {} );
 
   template<typename CallbackT>
   BabelFishService::SharedPtr
   create_service( rclcpp::Node &node, const std::string &service_name, const std::string &type,
-                  CallbackT &&callback, const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
+                  CallbackT &&callback,
+                  const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
                   rclcpp::CallbackGroup::SharedPtr group = nullptr )
   {
     rclcpp::AnyServiceCallback<impl::BabelFishService> any_callback;
-    any_callback.set( std::forward<CallbackT>( callback ));
+    any_callback.set( std::forward<CallbackT>( callback ) );
     return create_service( node, service_name, type, any_callback, qos_profile, group );
   }
 
@@ -137,10 +137,10 @@ public:
                          const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
                          rclcpp::CallbackGroup::SharedPtr group = nullptr );
 
-  BabelFishActionClient::SharedPtr
-  create_action_client( rclcpp::Node &node, const std::string &name, const std::string &type,
-                        const rcl_action_client_options_t &options = rcl_action_client_get_default_options(),
-                        rclcpp::CallbackGroup::SharedPtr group = nullptr );
+  BabelFishActionClient::SharedPtr create_action_client(
+      rclcpp::Node &node, const std::string &name, const std::string &type,
+      const rcl_action_client_options_t &options = rcl_action_client_get_default_options(),
+      rclcpp::CallbackGroup::SharedPtr group = nullptr );
 
   /*!
    * Creates an empty message of the given type.
@@ -153,7 +153,6 @@ public:
 
   //! @copydoc create_message
   CompoundMessage::SharedPtr create_message_shared( const std::string &type ) const;
-
 
   /*!
    * Creates a service request message for the given service type.
@@ -178,6 +177,6 @@ public:
 private:
   std::vector<TypeSupportProvider::SharedPtr> type_support_providers_;
 };
-} // ros2_babel_fish
+} // namespace ros2_babel_fish
 
-#endif //ROS2_BABEL_FISH_BABEL_FISH_HPP
+#endif // ROS2_BABEL_FISH_BABEL_FISH_HPP

@@ -4,15 +4,14 @@
 #ifndef ROS2_BABEL_FISH_COMPOUND_MESSAGE_HPP
 #define ROS2_BABEL_FISH_COMPOUND_MESSAGE_HPP
 
-#include "ros2_babel_fish/idl/type_support.hpp"
 #include "message.hpp"
+#include "ros2_babel_fish/idl/type_support.hpp"
 #include <rosidl_runtime_cpp/message_initialization.hpp>
 
 #include <vector>
 
 namespace ros2_babel_fish
 {
-
 
 class CompoundMessage final : public Message
 {
@@ -25,7 +24,8 @@ public:
   CompoundMessage( MessageMembersIntrospection members, std::shared_ptr<void> data );
 
   explicit CompoundMessage( MessageMembersIntrospection members,
-                            rosidl_runtime_cpp::MessageInitialization init = rosidl_runtime_cpp::MessageInitialization::ALL );
+                            rosidl_runtime_cpp::MessageInitialization init =
+                                rosidl_runtime_cpp::MessageInitialization::ALL );
 
   //! Creates a copy of the CompoundMessage pointing at the same message.
   //! Use clone() to get an independent copy of this message.
@@ -104,6 +104,6 @@ protected:
   mutable std::vector<Message::SharedPtr> values_;
   mutable bool initialized_values_ = false;
 };
-} // ros2_babel_fish
+} // namespace ros2_babel_fish
 
-#endif //ROS2_BABEL_FISH_COMPOUND_MESSAGE_HPP
+#endif // ROS2_BABEL_FISH_COMPOUND_MESSAGE_HPP

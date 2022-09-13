@@ -14,23 +14,20 @@ class CompoundMessage;
 
 namespace impl
 {
-struct BabelFishAction
-{
+struct BabelFishAction {
   using Feedback = CompoundMessage;
   using Goal = CompoundMessage;
   using Result = CompoundMessage;
 
-  typedef struct Impl
-  {
-    struct CancelGoalService
-    {
+  typedef struct Impl {
+    struct CancelGoalService {
       using Request = CompoundMessage;
       using Response = CompoundMessage;
     };
   } Impl;
 };
-}
-}
+} // namespace impl
+} // namespace ros2_babel_fish
 
 namespace rclcpp_action
 {
@@ -53,8 +50,7 @@ public:
   /**
    * This struct is used to pass parameters to the function `async_send_goal`.
    */
-  struct SendGoalOptions
-  {
+  struct SendGoalOptions {
     /// Function called when the goal is accepted or rejected.
     /**
      * Takes a single argument that is a goal handle shared pointer.
@@ -70,13 +66,12 @@ public:
     ResultCallback result_callback;
   };
 
-  Client(
-    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
-    rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph,
-    rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
-    const std::string &action_name,
-    std::shared_ptr<const ros2_babel_fish::ActionTypeSupport> type_support,
-    const rcl_action_client_options_t &client_options = rcl_action_client_get_default_options());
+  Client( rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
+          rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph,
+          rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
+          const std::string &action_name,
+          std::shared_ptr<const ros2_babel_fish::ActionTypeSupport> type_support,
+          const rcl_action_client_options_t &client_options = rcl_action_client_get_default_options() );
 
   ros2_babel_fish::CompoundMessage create_goal() const;
 
@@ -92,8 +87,8 @@ public:
    *   Will overwrite any result callback specified in async_send_goal!
    * @return A future that is set to the goal result when the goal is finished.
    */
-  std::shared_future<WrappedResult>
-  async_get_result( typename GoalHandle::SharedPtr goal_handle, ResultCallback result_callback = nullptr );
+  std::shared_future<WrappedResult> async_get_result( typename GoalHandle::SharedPtr goal_handle,
+                                                      ResultCallback result_callback = nullptr );
 
   /// Asynchronously request a goal be canceled.
   /**
@@ -108,8 +103,8 @@ public:
    * <a href="https://github.com/ros2/rcl_interfaces/blob/master/action_msgs/srv/CancelGoal.srv">
    * action_msgs/CancelGoal.srv</a>.
    */
-  std::shared_future<CancelResponse>
-  async_cancel_goal( GoalHandle::SharedPtr goal_handle, CancelCallback cancel_callback = nullptr );
+  std::shared_future<CancelResponse> async_cancel_goal( GoalHandle::SharedPtr goal_handle,
+                                                        CancelCallback cancel_callback = nullptr );
 
   /// Asynchronously request for all goals to be canceled.
   /**
@@ -154,15 +149,15 @@ protected:
 
   void make_result_aware( GoalHandle::SharedPtr goal_handle );
 
-  std::shared_future<CancelResponse>
-  async_cancel( CancelRequest cancel_request, CancelCallback cancel_callback = nullptr );
+  std::shared_future<CancelResponse> async_cancel( CancelRequest cancel_request,
+                                                   CancelCallback cancel_callback = nullptr );
 
 private:
   std::shared_ptr<const ros2_babel_fish::ActionTypeSupport> type_support_;
   std::mutex goal_handles_mutex_;
   std::map<GoalUUID, typename GoalHandle::WeakPtr> goal_handles_;
 };
-}
+} // namespace rclcpp_action
 
 namespace ros2_babel_fish
 {
@@ -171,4 +166,4 @@ using BabelFishActionClient = rclcpp_action::Client<impl::BabelFishAction>;
 
 }
 
-#endif //ROS2_BABEL_FISH_BABEL_FISH_ACTION_CLIENT_HPP
+#endif // ROS2_BABEL_FISH_BABEL_FISH_ACTION_CLIENT_HPP

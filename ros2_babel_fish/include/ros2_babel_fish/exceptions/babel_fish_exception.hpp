@@ -14,6 +14,6 @@ class BabelFishException : public std::runtime_error
 public:
   explicit BabelFishException( const std::string &msg ) : std::runtime_error( msg ) { }
 };
-} // ros2_babel_fish
+} // namespace ros2_babel_fish
 
-#endif //ROS2_BABEL_FISH_BABEL_FISH_EXCEPTION_HPP
+#endif // ROS2_BABEL_FISH_BABEL_FISH_EXCEPTION_HPP
