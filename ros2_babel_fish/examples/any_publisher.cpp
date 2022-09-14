@@ -39,7 +39,7 @@ private:
     // Publish a string message
     {
       CompoundMessage::SharedPtr message = fish_->create_message_shared( "std_msgs/msg/String" );
-      ( *message )["data_ptr"] = "Hello World! " + std::to_string( ++count_ );
+      ( *message )["data"] = "Hello World! " + std::to_string( ++count_ );
 
       pub_string_->publish( *message );
     }
