@@ -18,8 +18,6 @@ endif ()
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
-# Define major version of RCLCPP to deduce ROS version and keep a single code base for now
-add_definitions(-DRCLCPP_VERSION_MAJOR=${rclcpp_VERSION_MAJOR})
 find_package(rclcpp_action REQUIRED)
 find_package(rcpputils REQUIRED)
 find_package(rosidl_runtime_cpp REQUIRED)
@@ -48,6 +46,7 @@ set(SOURCES
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
+target_compile_definitions(${PROJECT_NAME} PUBLIC RCLCPP_VERSION_MAJOR=${rclcpp_VERSION_MAJOR})
 target_link_libraries(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

@@ -54,6 +54,7 @@ BabelFishSubscription::SharedPtr BabelFish::create_subscription(
                               ". Type not found!" );
   }
   try {
+    // TODO Add support for topic statistics?
     auto subscription = std::make_shared<BabelFishSubscription>(
         node.get_node_base_interface().get(), type_support, topic, qos, std::move( callback ),
         std::move( options ) );
