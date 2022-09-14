@@ -4,13 +4,12 @@
 #ifndef ROS2_BABEL_FISH_BABEL_FISH_ACTION_CLIENT_HPP
 #define ROS2_BABEL_FISH_BABEL_FISH_ACTION_CLIENT_HPP
 
+#include "ros2_babel_fish/messages/compound_message.hpp"
 #include <rclcpp_action/client.hpp>
 
 namespace ros2_babel_fish
 {
 struct ActionTypeSupport;
-
-class CompoundMessage;
 
 namespace impl
 {
