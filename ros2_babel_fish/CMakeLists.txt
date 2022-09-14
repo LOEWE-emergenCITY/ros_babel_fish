@@ -147,6 +147,7 @@ if (BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(action_tutorials_interfaces REQUIRED)
   find_package(example_interfaces REQUIRED)
   find_package(geometry_msgs REQUIRED)
   include_directories(include)
@@ -168,7 +169,7 @@ if (BUILD_TESTING)
   target_link_libraries(test_service_client ${PROJECT_NAME})
 
   ament_add_gtest(test_action_client test/action_client.cpp)
-  ament_target_dependencies(test_action_client example_interfaces ros2_babel_fish_test_msgs)
+  ament_target_dependencies(test_action_client action_tutorials_interfaces example_interfaces ros2_babel_fish_test_msgs)
   target_link_libraries(test_action_client ${PROJECT_NAME})
 endif ()
 
@@ -186,7 +187,9 @@ endif ()
 
 find_package(benchmark QUIET)
 if (${benchmark_FOUND})
+  find_package(geometry_msgs REQUIRED)
   add_executable(benchmark_message benchmark/message.cpp)
+  ament_target_dependencies(benchmark_message geometry_msgs)
   target_link_libraries(benchmark_message ${PROJECT_NAME} benchmark)
   target_include_directories(benchmark_message PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
