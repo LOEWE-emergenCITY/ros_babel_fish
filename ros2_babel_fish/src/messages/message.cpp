@@ -39,14 +39,14 @@ namespace
 {
 
 template<typename T, typename U>
-typename std::enable_if<std::numeric_limits<T>::is_signed != std::numeric_limits<U>::is_signed, bool>::type
+constexpr typename std::enable_if<std::numeric_limits<T>::is_signed != std::numeric_limits<U>::is_signed, bool>::type
 inBounds()
 {
   return false;
 }
 
 template<typename T, typename U>
-typename std::enable_if<std::numeric_limits<T>::is_signed == std::numeric_limits<U>::is_signed, bool>::type
+constexpr typename std::enable_if<std::numeric_limits<T>::is_signed == std::numeric_limits<U>::is_signed, bool>::type
 inBounds()
 {
   return std::numeric_limits<U>::min() <= std::numeric_limits<T>::min() &&
@@ -54,14 +54,22 @@ inBounds()
 }
 
 template<typename T, typename U>
-typename std::enable_if<!std::is_integral<U>::value && !std::is_floating_point<U>::value, bool>::type
-isCompatible()
+constexpr
+    typename std::enable_if<!std::is_integral<U>::value && !std::is_floating_point<U>::value, bool>::type
+    isCompatible()
 {
   return false;
 }
 
 template<typename T, typename U>
-typename std::enable_if<std::is_integral<U>::value, bool>::type isCompatible()
+constexpr typename std::enable_if<std::is_same<T, bool>::value, bool>::type isCompatible()
+{
+  return std::is_same<T, U>::value;
+}
+
+template<typename T, typename U>
+constexpr typename std::enable_if<std::is_integral<U>::value && !std::is_same<T, bool>::value, bool>::type
+isCompatible()
 {
   if ( std::is_same<T, U>::value )
     return true;
@@ -73,19 +81,20 @@ typename std::enable_if<std::is_integral<U>::value, bool>::type isCompatible()
 }
 
 template<typename T, typename U>
-typename std::enable_if<std::is_floating_point<U>::value, bool>::type isCompatible()
+constexpr typename std::enable_if<std::is_floating_point<U>::value && !std::is_same<T, bool>::value, bool>::type
+isCompatible()
 {
   return std::is_same<T, U>::value || !std::is_same<T, double>::value;
 }
 
 template<>
-bool isCompatible<float, double>()
+constexpr bool isCompatible<float, double>()
 {
   return true;
 }
 
 template<typename T, typename U>
-typename std::enable_if<std::is_floating_point<T>::value, bool>::type inBounds( const T & )
+constexpr typename std::enable_if<std::is_floating_point<T>::value, bool>::type inBounds( const T & )
 {
   return false;
 }
@@ -126,8 +135,16 @@ isCompatible( const T & )
   return false;
 }
 
+//! Booleans are only compatible with booleans as they are semantically distinct from numbers.
 template<typename T, typename U>
-typename std::enable_if<std::is_integral<U>::value, bool>::type isCompatible( const T &val )
+typename std::enable_if<std::is_same<bool, T>::value, bool>::type isCompatible( const T & )
+{
+  return std::is_same<T, U>::value;
+}
+
+template<typename T, typename U>
+typename std::enable_if<std::is_integral<U>::value && !std::is_same<bool, T>::value, bool>::type
+isCompatible( const T &val )
 {
   if ( std::is_same<T, U>::value )
     return true;
@@ -137,7 +154,8 @@ typename std::enable_if<std::is_integral<U>::value, bool>::type isCompatible( co
 }
 
 template<typename T, typename U>
-typename std::enable_if<std::is_floating_point<U>::value, bool>::type isCompatible( const T & )
+typename std::enable_if<std::is_floating_point<U>::value && !std::is_same<bool, T>::value, bool>::type
+isCompatible( const T & )
 {
   return std::is_integral<T>::value || sizeof( T ) <= sizeof( U );
 }
