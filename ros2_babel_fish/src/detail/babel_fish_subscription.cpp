@@ -55,6 +55,10 @@ BabelFishSubscription::BabelFishSubscription(
       // pass
     }
   }
+  if ( options.event_callbacks.message_lost_callback ) {
+    this->add_event_handler( options.event_callbacks.message_lost_callback,
+                             RCL_SUBSCRIPTION_MESSAGE_LOST );
+  }
 #if RCLCPP_VERSION_MAJOR >= 9
   if ( options.event_callbacks.message_lost_callback ) {
     this->add_event_handler( options.event_callbacks.message_lost_callback,
@@ -67,16 +71,16 @@ BabelFishSubscription::BabelFishSubscription(
     using rclcpp::detail::resolve_intra_process_buffer_type;
 
     // Check if the QoS is compatible with intra-process.
-    rmw_qos_profile_t qos_profile = get_actual_qos().get_rmw_qos_profile();
-    if ( qos_profile.history == RMW_QOS_POLICY_HISTORY_KEEP_ALL ) {
+    auto qos_profile = get_actual_qos();
+    if ( qos_profile.history() != rclcpp::HistoryPolicy::KeepLast ) {
       throw std::invalid_argument(
           "intraprocess communication is not allowed with keep all history qos policy" );
     }
-    if ( qos_profile.depth == 0 ) {
+    if ( qos_profile.depth() == 0 ) {
       throw std::invalid_argument(
           "intraprocess communication is not allowed with 0 depth qos policy" );
     }
-    if ( qos_profile.durability != RMW_QOS_POLICY_DURABILITY_VOLATILE ) {
+    if ( qos_profile.durability() != rclcpp::DurabilityPolicy::Volatile ) {
       throw std::invalid_argument(
           "intraprocess communication allowed only with volatile durability" );
     }
@@ -135,6 +139,13 @@ void BabelFishSubscription::handle_message( std::shared_ptr<void> &message,
                                             const rclcpp::MessageInfo &message_info )
 {
   callback_.dispatch( CompoundMessage::make_shared( *type_support_, message ), message_info );
+}
+
+void BabelFishSubscription::handle_serialized_message(
+    const std::shared_ptr<rclcpp::SerializedMessage> &serialized_message,
+    const rclcpp::MessageInfo &message_info )
+{
+  callback_.dispatch( serialized_message, message_info );
 }
 
 void BabelFishSubscription::handle_loaned_message( void *loaned_message,
