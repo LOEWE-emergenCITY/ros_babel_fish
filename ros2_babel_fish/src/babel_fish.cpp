@@ -110,10 +110,12 @@ BabelFish::create_publisher( rclcpp::Node &node, const std::string &topic, const
   return result;
 }
 
-BabelFishService::SharedPtr BabelFish::create_service(
-    rclcpp::Node &node, const std::string &service_name, const std::string &type,
-    rclcpp::AnyServiceCallback<impl::BabelFishService> callback,
-    const rmw_qos_profile_t &qos_profile, rclcpp::CallbackGroup::SharedPtr group )
+BabelFishService::SharedPtr BabelFish::create_service( rclcpp::Node &node,
+                                                       const std::string &service_name,
+                                                       const std::string &type,
+                                                       AnyServiceCallback callback,
+                                                       const rmw_qos_profile_t &qos_profile,
+                                                       rclcpp::CallbackGroup::SharedPtr group )
 {
   ServiceTypeSupport::ConstSharedPtr type_support = get_service_type_support( type );
   if ( type_support == nullptr ) {

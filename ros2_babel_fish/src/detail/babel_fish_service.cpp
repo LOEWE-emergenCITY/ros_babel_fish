@@ -13,10 +13,9 @@ namespace ros2_babel_fish
 BabelFishService::BabelFishService( std::shared_ptr<rcl_node_t> node_base,
                                     const std::string &service_name,
                                     ServiceTypeSupport::ConstSharedPtr type_support,
-                                    rclcpp::AnyServiceCallback<impl::BabelFishService> callback,
-                                    rcl_service_options_t options )
+                                    AnyServiceCallback callback, rcl_service_options_t options )
     : ServiceBase( std::move( node_base ) ), type_support_( std::move( type_support ) ),
-      callback_( callback )
+      callback_( std::move( callback ) )
 {
   // rcl does the static memory allocation here
   service_handle_ = std::shared_ptr<rcl_service_t>( new rcl_service_t, [handle = node_handle_](
@@ -85,7 +84,7 @@ void BabelFishService::handle_request( std::shared_ptr<rmw_request_id_t> request
 {
   auto typed_request = CompoundMessage::make_shared( type_support_->request(), request );
   auto response = CompoundMessage::make_shared( type_support_->response() );
-  callback_.dispatch( request_header, typed_request, response );
+  callback_.dispatch( this->shared_from_this(), request_header, typed_request, response );
   send_response( *request_header, *response );
 }
 } // namespace ros2_babel_fish

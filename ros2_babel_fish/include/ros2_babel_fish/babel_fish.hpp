@@ -121,14 +121,13 @@ public:
                   const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
                   rclcpp::CallbackGroup::SharedPtr group = nullptr )
   {
-    rclcpp::AnyServiceCallback<impl::BabelFishService> any_callback;
-    any_callback.set( std::forward<CallbackT>( callback ) );
+    AnyServiceCallback any_callback( std::forward<CallbackT>( callback ) );
     return create_service( node, service_name, type, any_callback, qos_profile, group );
   }
 
   BabelFishService::SharedPtr
   create_service( rclcpp::Node &node, const std::string &service_name, const std::string &type,
-                  rclcpp::AnyServiceCallback<impl::BabelFishService> callback,
+                  AnyServiceCallback callback,
                   const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
                   rclcpp::CallbackGroup::SharedPtr group = nullptr );
 
