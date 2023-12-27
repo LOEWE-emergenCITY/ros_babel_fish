@@ -17,6 +17,7 @@
 
   <depend>ament_index_cpp</depend>
   <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
   <depend>rcpputils</depend>
   <build_depend>action_tutorials_interfaces</build_depend>
   <build_depend>geometry_msgs</build_depend>
