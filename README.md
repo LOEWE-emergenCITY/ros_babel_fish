@@ -25,6 +25,14 @@ If you are using this module in a scientific context, feel free to cite this pap
 }
 ```
 
+## Installation
+
+Clone this repo into the `src` folder of your colcon workspace, build and open a new terminal or source the workspace overlay again.
+(Beginners: see [here](https://docs.ros.org/en/rolling/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html) for an introduction to workspaces)
+
+**Note:** Only foxy, rolling and ROS2 versions from jazzy upwards have full support for this library as the others are missing functionality in the core ROS packages and the backports have not been merged yet.
+On the other versions, services and actions do not work. Subscribing and publishing works on all ROS2 versions.
+
 ## Examples
 
 ### Subscribing
