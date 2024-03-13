@@ -12,6 +12,7 @@
 #include <rosidl_runtime_cpp/bounded_vector.hpp>
 
 #include <memory>
+#include <regex>
 
 namespace ros2_babel_fish
 {
@@ -295,6 +296,18 @@ public:
   }
 
   ~CompoundArrayMessage_() override { }
+
+  std::string elementDatatype() const
+  {
+    MessageMembersIntrospection introspection( member_ );
+    return std::string( introspection->message_namespace_ ) + "::" + introspection->message_name_;
+  }
+
+  std::string elementName() const
+  {
+    static const std::regex namespace_regex( "::" );
+    return std::regex_replace( elementDatatype(), namespace_regex, "/" );
+  }
 
   CompoundMessage &operator[]( size_t index ) { return getImplementation( index ); }
 
