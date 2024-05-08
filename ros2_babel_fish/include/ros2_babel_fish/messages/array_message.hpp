@@ -53,7 +53,7 @@ public:
 
 protected:
   // Disable copy construction except for subclasses
-  ArrayMessageBase( const ArrayMessageBase &other ) : Message( other ), member_( other.member_ ) { }
+  ArrayMessageBase( const ArrayMessageBase &other ) = default;
 
   void _assign( const Message &other ) override
   {
@@ -88,7 +88,10 @@ public:
   {
   }
 
-  ~ArrayMessage_() override { }
+  ~ArrayMessage_() override = default;
+
+  // Explicitly use Message operator to prevent hidden warnings
+  using Message::operator[];
 
   template<typename ENABLED = T>
   typename std::enable_if<FIXED_LENGTH || !std::is_same<ENABLED, bool>::value, Reference>::type
@@ -308,6 +311,9 @@ public:
     static const std::regex namespace_regex( "::" );
     return std::regex_replace( elementDatatype(), namespace_regex, "/" );
   }
+
+  // Explicitly use Message operator to prevent hidden warnings
+  using Message::operator[];
 
   CompoundMessage &operator[]( size_t index ) { return getImplementation( index ); }
 

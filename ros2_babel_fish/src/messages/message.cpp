@@ -39,15 +39,17 @@ namespace
 {
 
 template<typename T, typename U>
-constexpr typename std::enable_if<std::numeric_limits<T>::is_signed != std::numeric_limits<U>::is_signed, bool>::type
-inBounds()
+constexpr
+    typename std::enable_if<std::numeric_limits<T>::is_signed != std::numeric_limits<U>::is_signed, bool>::type
+    inBounds()
 {
   return false;
 }
 
 template<typename T, typename U>
-constexpr typename std::enable_if<std::numeric_limits<T>::is_signed == std::numeric_limits<U>::is_signed, bool>::type
-inBounds()
+constexpr
+    typename std::enable_if<std::numeric_limits<T>::is_signed == std::numeric_limits<U>::is_signed, bool>::type
+    inBounds()
 {
   return std::numeric_limits<U>::min() <= std::numeric_limits<T>::min() &&
          std::numeric_limits<T>::max() <= std::numeric_limits<U>::max();
@@ -68,8 +70,9 @@ constexpr typename std::enable_if<std::is_same<T, bool>::value, bool>::type isCo
 }
 
 template<typename T, typename U>
-constexpr typename std::enable_if<std::is_integral<U>::value && !std::is_same<T, bool>::value, bool>::type
-isCompatible()
+constexpr
+    typename std::enable_if<std::is_integral<U>::value && !std::is_same<T, bool>::value, bool>::type
+    isCompatible()
 {
   if ( std::is_same<T, U>::value )
     return true;
@@ -81,8 +84,9 @@ isCompatible()
 }
 
 template<typename T, typename U>
-constexpr typename std::enable_if<std::is_floating_point<U>::value && !std::is_same<T, bool>::value, bool>::type
-isCompatible()
+constexpr
+    typename std::enable_if<std::is_floating_point<U>::value && !std::is_same<T, bool>::value, bool>::type
+    isCompatible()
 {
   return std::is_same<T, U>::value || !std::is_same<T, double>::value;
 }
@@ -261,7 +265,7 @@ Message &Message::operator=( bool value )
 {
   if ( type() != MessageTypes::Bool )
     throw BabelFishException( "Can not _assign a boolean to a non-boolean ValueMessage!" );
-  as<ValueMessage<bool>>() = value;
+  as<ValueMessage<bool>>().setValue( value );
   return *this;
 }
 
@@ -341,7 +345,7 @@ Message &Message::operator=( const std::string &value )
 {
   if ( type() != MessageTypes::String )
     throw BabelFishException( "Can not _assign a string to a non-string ValueMessage!" );
-  as<ValueMessage<std::string>>() = value;
+  as<ValueMessage<std::string>>().setValue( value );
   return *this;
 }
 
@@ -349,7 +353,7 @@ Message &Message::operator=( const std::wstring &value )
 {
   if ( type() != MessageTypes::WString )
     throw BabelFishException( "Can not _assign a wstring to a non-wstring ValueMessage!" );
-  as<ValueMessage<std::wstring>>() = value;
+  as<ValueMessage<std::wstring>>().setValue( value );
   return *this;
 }
 

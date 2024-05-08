@@ -35,12 +35,6 @@ public:
     *reinterpret_cast<T *>( this->data_ptr() + member_->offset_ ) = value;
   }
 
-  ValueMessage<T> &operator=( const T &value )
-  {
-    setValue( value );
-    return *this;
-  }
-
   ValueMessage<T> &operator=( const ValueMessage<T> &other )
   {
     if ( this == &other )

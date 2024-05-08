@@ -179,7 +179,7 @@ protected:
   void checkValueEqual( const U &other, bool &result ) const;
 
   // Disable copy construction except for subclasses
-  Message( const Message &other ) : data_( other.data_ ), type_( other.type_ ) { }
+  Message( const Message &other ) = default;
 
   virtual bool _isMessageEqual( const Message &other ) const = 0;
 
