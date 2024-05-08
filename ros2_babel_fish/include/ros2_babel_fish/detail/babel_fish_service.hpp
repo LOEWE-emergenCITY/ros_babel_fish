@@ -6,7 +6,6 @@
 
 #include "ros2_babel_fish/detail/any_service_callback.hpp"
 #include "ros2_babel_fish/idl/type_support.hpp"
-#include "ros2_babel_fish/idl/type_support.hpp"
 #include "ros2_babel_fish/messages/compound_message.hpp"
 #include <rclcpp/node.hpp>
 
@@ -27,8 +26,7 @@ public:
 
   //! Do not call directly, this is private API and might change. Use BabelFish::create_service.
   BabelFishService( std::shared_ptr<rcl_node_t> node, const std::string &service_name,
-                    ServiceTypeSupport::ConstSharedPtr type_support,
-                    AnyServiceCallback callback,
+                    ServiceTypeSupport::ConstSharedPtr type_support, AnyServiceCallback callback,
                     rcl_service_options_t options );
 
   bool take_request( CompoundMessage &request_out, rmw_request_id_t &request_id_out );

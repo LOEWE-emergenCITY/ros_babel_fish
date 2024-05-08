@@ -314,7 +314,7 @@ TEST( MessageTest, arrayMessage )
   //    }
   //    EXPECT_EQ( am.size(), 20U );
   //    EXPECT_THROW( am.assign( 20, CompoundMessage{} ), BabelFishException );
-  
+
   //    CompoundArrayMessage am_copy( am.elementIntrospection() );
   //    for ( int i = 0; i < 10; ++i )
   //    {
@@ -327,19 +327,18 @@ TEST( MessageTest, arrayMessage )
   //    am_copy = am;
   //    EXPECT_EQ( am_copy.elementDatatype(), "std_msgs::msg::Header" );
   //    EXPECT_EQ( am_copy.size(), 20U );
-  
+
   //    auto *am_clone = dynamic_cast<CompoundArrayMessage *>(am.clone());
   //    EXPECT_EQ( am_clone->size(), 20U );
   //    am_clone->at( 0 )["frame_id"] = "different_frame";
   //    EXPECT_EQ( am_clone->at( 0 )["frame_id"].value<std::string>(), "different_frame" );
   //    EXPECT_EQ( am[0]["frame_id"].value<std::string>(), "frame 0" );
   //    delete am_clone;
-  
+
   //    CompoundArrayMessage different_am(
   //      fish.getMessageTypeSupport( "geometry_msgs/msg/Pose" )->message_template );
   //    EXPECT_THROW( am_copy = different_am, BabelFishException );
-  
-  
+
   //    ArrayMessage<Message> aa( MessageTypes::Array );
   //    aa.push_back( am.clone());
   //    aa.push_back( am_copy.clone());
@@ -351,7 +350,7 @@ TEST( MessageTest, arrayMessage )
   //    EXPECT_EQ( aa[0].as<CompoundArrayMessage>()[0]["frame_id"].value<std::string>(), "frame 0" );
   //    delete aa_clone;
   //  }
-  
+
   //  // FIXED SIZE
   //  {
   //    ArrayMessage<bool> am( 20, true );
