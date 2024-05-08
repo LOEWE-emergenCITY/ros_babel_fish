@@ -17,6 +17,10 @@ class BabelFish;
 
 class BabelFishSubscription : public rclcpp::SubscriptionBase
 {
+private:
+  using SubscriptionTopicStatisticsSharedPtr =
+      std::shared_ptr<rclcpp::topic_statistics::SubscriptionTopicStatistics>;
+
 public:
   RCLCPP_SMART_PTR_DEFINITIONS( BabelFishSubscription )
 
@@ -25,7 +29,8 @@ public:
       MessageTypeSupport::ConstSharedPtr type_support, const std::string &topic_name,
       const rclcpp::QoS &qos,
       rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
-      const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options );
+      const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options,
+      SubscriptionTopicStatisticsSharedPtr subscription_topic_statistics = nullptr );
 
   ~BabelFishSubscription() override;
 
@@ -51,11 +56,28 @@ public:
 
   std::string get_message_type() const;
 
+  rclcpp::dynamic_typesupport::DynamicMessageType::SharedPtr get_shared_dynamic_message_type() override;
+
+  rclcpp::dynamic_typesupport::DynamicMessage::SharedPtr get_shared_dynamic_message() override;
+
+  rclcpp::dynamic_typesupport::DynamicSerializationSupport::SharedPtr
+  get_shared_dynamic_serialization_support() override;
+
+  rclcpp::dynamic_typesupport::DynamicMessage::SharedPtr create_dynamic_message() override;
+
+  void
+  return_dynamic_message( rclcpp::dynamic_typesupport::DynamicMessage::SharedPtr &message ) override;
+
+  void handle_dynamic_message( const rclcpp::dynamic_typesupport::DynamicMessage::SharedPtr &message,
+                               const rclcpp::MessageInfo &message_info ) override;
+
 private:
   RCLCPP_DISABLE_COPY( BabelFishSubscription )
 
   MessageTypeSupport::ConstSharedPtr type_support_;
   rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback_;
+  /// Component which computes and publishes topic statistics for this subscriber
+  SubscriptionTopicStatisticsSharedPtr subscription_topic_statistics_{ nullptr };
 };
 } // namespace ros2_babel_fish
 

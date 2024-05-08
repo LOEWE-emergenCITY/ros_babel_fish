@@ -15,32 +15,10 @@ BabelFishPublisher::BabelFishPublisher( rclcpp::node_interfaces::NodeBaseInterfa
                                         const std::string &topic, const rclcpp::QoS &qos,
                                         const rclcpp::PublisherOptions &options )
     : PublisherBase( node_base, topic, type_support,
-                     options.to_rcl_publisher_options<CompoundMessage>( qos ) ),
+                     options.to_rcl_publisher_options<CompoundMessage>( qos ),
+                     options.event_callbacks, options.use_default_callbacks ),
       options_( options )
 {
-  if ( options_.event_callbacks.deadline_callback ) {
-    this->add_event_handler( options_.event_callbacks.deadline_callback,
-                             RCL_PUBLISHER_OFFERED_DEADLINE_MISSED );
-  }
-  if ( options_.event_callbacks.liveliness_callback ) {
-    this->add_event_handler( options_.event_callbacks.liveliness_callback,
-                             RCL_PUBLISHER_LIVELINESS_LOST );
-  }
-  if ( options_.event_callbacks.incompatible_qos_callback ) {
-    this->add_event_handler( options_.event_callbacks.incompatible_qos_callback,
-                             RCL_PUBLISHER_OFFERED_INCOMPATIBLE_QOS );
-  } else if ( options_.use_default_callbacks ) {
-    // Register default callback when not specified
-    try {
-      this->add_event_handler(
-          [this]( rclcpp::QOSOfferedIncompatibleQoSInfo &info ) {
-            this->default_incompatible_qos_callback( info );
-          },
-          RCL_PUBLISHER_OFFERED_INCOMPATIBLE_QOS );
-    } catch ( rclcpp::UnsupportedEventTypeException & /*exc*/ ) {
-      // pass
-    }
-  }
   // Setup continues in the post construction method, post_init_setup().
 }
 
@@ -49,31 +27,12 @@ void BabelFishPublisher::post_init_setup(
     const rclcpp::QoS &qos,
     const rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> &options )
 {
-  // Topic is unused for now.
+  // Here intra process publishing would be set up if someone cares to add support
+  (void)node_base;
   (void)topic;
   (void)options;
-
-  // If needed, setup intra process communication.
-  if ( rclcpp::detail::resolve_use_intra_process( options_, *node_base ) ) {
-    auto context = node_base->get_context();
-    // Get the intra process manager instance for this context.
-    auto ipm = context->get_sub_context<rclcpp::experimental::IntraProcessManager>();
-    // Register the publisher with the intra process manager.
-    if ( qos.get_rmw_qos_profile().history == RMW_QOS_POLICY_HISTORY_KEEP_ALL ) {
-      throw std::invalid_argument(
-          "intraprocess communication is not allowed with keep all history qos policy" );
-    }
-    if ( qos.get_rmw_qos_profile().depth == 0 ) {
-      throw std::invalid_argument(
-          "intraprocess communication is not allowed with a zero qos history depth value" );
-    }
-    if ( qos.get_rmw_qos_profile().durability != RMW_QOS_POLICY_DURABILITY_VOLATILE ) {
-      throw std::invalid_argument(
-          "intraprocess communication allowed only with volatile durability" );
-    }
-    uint64_t intra_process_publisher_id = ipm->add_publisher( this->shared_from_this() );
-    this->setup_intra_process( intra_process_publisher_id, ipm );
-  }
+  (void)qos;
+  (void)options;
 }
 
 void BabelFishPublisher::publish( std::unique_ptr<CompoundMessage> msg )
