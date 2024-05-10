@@ -18,10 +18,13 @@ jobs:
           fetch-depth: 0
       - name: Setup
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format libxml2-utils
+          sudo apt-get update && sudo apt-get install -y clang-format cppcheck libxml2-utils
       - name: Lint C++
         run: |
           clang-format -Werror -n -style=file $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.c' -o -name '*.cc')
+      - name: Check C++
+        run: |
+          cppcheck --force --quiet --error-exitcode=1 .
       - name: Lint package.xml
         run: |
           xmllint --noout --schema http://download.ros.org/schema/package_format3.xsd $(find . -name 'package.xml')
