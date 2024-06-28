@@ -1,4 +1,4 @@
-# ROS2 Babel Fish
+# ROS Babel Fish
 
 This library enables ROS2 nodes written in C++ to communicate using message types that are unknown at compile time.
 
@@ -30,7 +30,7 @@ If you are using this module in a scientific context, feel free to cite this pap
 ### Subscribing
 
 ```C++
-using namespace ros2_babel_fish; // Except Node all of the following classes are in that namespace
+using namespace ros_babel_fish; // Except Node all of the following classes are in that namespace
 Node node;
 BabelFish::SharedPtr fish = BabelFish::make_shared();
 // Subscribe topic /pose
@@ -38,7 +38,7 @@ BabelFishSubscription::SharedPtr sub = fish->create_subscription( node, topic, 1
 
 /* ... */
 
-void callback( const ros2_babel_fish::CompoundMessage::SharedPtr &msg )
+void callback( const ros_babel_fish::CompoundMessage::SharedPtr &msg )
 {
   std::cout << "Message received!" << std::endl;
   std::cout << "Datatype:" << msg->datatype() << std::endl; // geometry_msgs::msg::Pose
@@ -55,7 +55,7 @@ void callback( const ros2_babel_fish::CompoundMessage::SharedPtr &msg )
 ### Publishing
 
 ```C++
-using namespace ros2_babel_fish; // Except Node all of the following classes are in that namespace
+using namespace ros_babel_fish; // Except Node all of the following classes are in that namespace
 Node node;
 BabelFish fish;
 // Advertise a publisher on topic /pose
