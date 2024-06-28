@@ -103,8 +103,8 @@ template<typename MessageType>
                                                 const std::string &path = "msg" );
 
 template<typename T>
-bool MessageContentEqualImpl( const ros_babel_fish::Message &a, const T &b,
-                              const std::string &path, ::testing::AssertionResult &result )
+bool MessageContentEqualImpl( const ros_babel_fish::Message &a, const T &b, const std::string &path,
+                              ::testing::AssertionResult &result )
 {
   using namespace ros_babel_fish;
   constexpr MessageType mt = message_type_traits::message_type<T>::value;

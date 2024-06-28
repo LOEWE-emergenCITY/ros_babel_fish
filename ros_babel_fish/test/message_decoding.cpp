@@ -255,8 +255,7 @@ TEST_F( MessageDecodingTest, arrayTests )
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_array, *msg ) );
   FixedLengthCompoundArrayMessage msg_subarrays_fixed =
       ( *msg )["subarrays_fixed"].as<FixedLengthCompoundArrayMessage>();
-  ASSERT_EQ( msg_subarrays_fixed.elementDatatype(),
-             "ros_babel_fish_test_msgs::msg::TestSubArray" );
+  ASSERT_EQ( msg_subarrays_fixed.elementDatatype(), "ros_babel_fish_test_msgs::msg::TestSubArray" );
   ASSERT_EQ( msg_subarrays_fixed.elementName(), "ros_babel_fish_test_msgs/msg/TestSubArray" );
 }
 
