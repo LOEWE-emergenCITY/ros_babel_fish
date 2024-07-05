@@ -142,6 +142,7 @@ install(DIRECTORY include/ DESTINATION include/)
 #############
 
 if (BUILD_TESTING)
+  set(ament_cmake_clang_format_CONFIG_FILE "${CMAKE_SOURCE_DIR}/../.clang-format")
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
