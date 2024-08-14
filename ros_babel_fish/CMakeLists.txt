@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(ros_babel_fish VERSION 1.0.0)
+project(ros_babel_fish VERSION 0.9.1)
 set(CMAKE_CXX_STANDARD 17)
 
 # If the value doesn't fit, an exception is thrown in any case because that could result in unexpected behavior and can not be ignored lightly
