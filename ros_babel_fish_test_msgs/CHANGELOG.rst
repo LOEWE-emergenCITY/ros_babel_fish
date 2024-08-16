@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish_test_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.9.3 (2024-08-16)
+------------------
 * Removed unneeded dependency.
 * Contributors: Stefan Fabian
 
