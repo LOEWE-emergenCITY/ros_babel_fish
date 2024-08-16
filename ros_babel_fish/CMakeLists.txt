@@ -23,7 +23,6 @@ find_package(rcpputils REQUIRED)
 find_package(rosidl_runtime_cpp REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rosidl_typesupport_introspection_cpp REQUIRED)
-find_package(ros_babel_fish_test_msgs REQUIRED)
 
 ###########
 ## Build ##
@@ -54,18 +53,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   )
 ament_target_dependencies(${PROJECT_NAME} ament_index_cpp rclcpp rclcpp_action rcpputils rosidl_runtime_cpp rosidl_typesupport_cpp rosidl_typesupport_introspection_cpp)
 
-add_executable(test_node src/test_node.cpp)
-target_link_libraries(test_node ${PROJECT_NAME})
-ament_target_dependencies(test_node rclcpp ros_babel_fish_test_msgs)
-target_include_directories(test_node PRIVATE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
 
 # Examples
 add_executable(any_publisher examples/any_publisher.cpp)
 target_link_libraries(any_publisher ${PROJECT_NAME})
-ament_target_dependencies(any_publisher rclcpp)
 target_include_directories(any_publisher PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -73,7 +64,6 @@ target_include_directories(any_publisher PRIVATE
 
 add_executable(any_subscriber examples/any_subscriber.cpp)
 target_link_libraries(any_subscriber ${PROJECT_NAME})
-ament_target_dependencies(any_subscriber rclcpp)
 target_include_directories(any_subscriber PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -81,7 +71,6 @@ target_include_directories(any_subscriber PRIVATE
 
 add_executable(troll_node examples/troll_node.cpp)
 target_link_libraries(troll_node ${PROJECT_NAME})
-ament_target_dependencies(troll_node rclcpp)
 target_include_directories(troll_node PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -89,7 +78,6 @@ target_include_directories(troll_node PRIVATE
 
 add_executable(service_server examples/service_server.cpp)
 target_link_libraries(service_server ${PROJECT_NAME})
-ament_target_dependencies(service_server rclcpp)
 target_include_directories(service_server PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -97,21 +85,17 @@ target_include_directories(service_server PRIVATE
 
 add_executable(service_client examples/service_client.cpp)
 target_link_libraries(service_client ${PROJECT_NAME})
-ament_target_dependencies(service_client rclcpp)
 target_include_directories(service_client PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
-find_package(action_tutorials_interfaces REQUIRED)
 add_executable(action_client examples/action_client.cpp)
 target_link_libraries(action_client ${PROJECT_NAME})
-ament_target_dependencies(action_client rclcpp rclcpp_action action_tutorials_interfaces)
 target_include_directories(action_client PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-
 
 #############
 ## Install ##
@@ -128,9 +112,9 @@ install(
   INCLUDES DESTINATION include
 )
 
-# Mark test_node and examples for installation
+# Mark examples for installation
 install(
-  TARGETS test_node action_client any_publisher any_subscriber service_client service_server troll_node
+  TARGETS action_client any_publisher any_subscriber service_client service_server troll_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -150,6 +134,7 @@ if (BUILD_TESTING)
   find_package(action_tutorials_interfaces REQUIRED)
   find_package(example_interfaces REQUIRED)
   find_package(geometry_msgs REQUIRED)
+  find_package(ros_babel_fish_test_msgs REQUIRED)
   include_directories(include)
 
   ament_add_gtest(test_message test/message.cpp)
