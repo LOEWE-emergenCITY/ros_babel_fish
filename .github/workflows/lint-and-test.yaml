@@ -1,0 +1,62 @@
+name: Lint & Test
+on:
+  push:
+    branches: [ jazzy ]
+  pull_request:
+    branches: [ jazzy ]
+defaults:
+  run:
+    shell: bash
+jobs:
+  Linting:
+    name: Lint Code Base
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang-format cppcheck libxml2-utils
+      - name: Lint C++
+        run: |
+          clang-format -Werror -n -style=file $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.c' -o -name '*.cc')
+      - name: Check C++
+        run: |
+          cppcheck --force --quiet --error-exitcode=1 .
+      - name: Lint package.xml
+        run: |
+          xmllint --noout --schema http://download.ros.org/schema/package_format3.xsd $(find . -name 'package.xml')
+
+  build-and-test:
+    needs: Linting
+    runs-on: ${{ matrix.setup.os }}
+    container:
+      image: ros:${{ matrix.setup.rosdistro }}-ros-base
+    strategy:
+      matrix:
+        setup:
+          - rosdistro: humble
+            os: ubuntu-22.04
+    steps:
+      - name: install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ros-dev-tools
+      - uses: actions/checkout@v4
+        with:
+          path: src
+      - name: rosdep
+        run: |
+          rosdep update
+          rosdep install -y --from-paths src --ignore-src --rosdistro ${{ matrix.setup.rosdistro }}
+      - name: build
+        run: |
+          source /opt/ros/${{ matrix.setup.rosdistro }}/setup.bash
+          colcon build
+      - name: test
+        run: |
+          source /opt/ros/${{ matrix.setup.rosdistro }}/setup.bash
+          colcon test
+          colcon test-result --verbose
