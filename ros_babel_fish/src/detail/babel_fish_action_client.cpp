@@ -37,7 +37,7 @@ CompoundMessage Client<impl::BabelFishAction>::create_goal() const
 
 std::shared_future<rclcpp_action::ClientGoalHandle<ros_babel_fish::impl::BabelFishAction>::SharedPtr>
 Client<ros_babel_fish::impl::BabelFishAction>::async_send_goal( const CompoundMessage &goal,
-                                                                 const SendGoalOptions &options )
+                                                                const SendGoalOptions &options )
 {
   auto promise = std::make_shared<std::promise<typename GoalHandle::SharedPtr>>();
   auto future = promise->get_future();
