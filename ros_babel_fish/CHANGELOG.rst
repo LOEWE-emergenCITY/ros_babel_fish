@@ -1,0 +1,11 @@
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package ros_babel_fish
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Forthcoming
+-----------
+* Updated dependencies.
+* Added missing test depend and configured ament_cmake_clang_format.
+* Formatting.
+* Renamed package to ros_babel_fish as requested in `ros/rosdistro#41540 <https://github.com/ros/rosdistro/issues/41540>`_
+* Contributors: Stefan Fabian
