@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.9.1 (2024-09-02)
+------------------
 * Updated dependencies.
 * Added missing test depend and configured ament_cmake_clang_format.
 * Formatting.
