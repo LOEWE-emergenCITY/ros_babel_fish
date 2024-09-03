@@ -2,6 +2,9 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.9.1 (2024-09-02)
 ------------------
 * Updated dependencies.
