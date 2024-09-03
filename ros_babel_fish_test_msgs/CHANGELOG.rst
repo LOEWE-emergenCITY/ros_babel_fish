@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish_test_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.9.4 (2024-09-03)
+------------------
 * Added missing action_msgs dependency.
 * Contributors: Stefan Fabian
 
