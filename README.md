@@ -94,4 +94,4 @@ compound["orientation"]["z"] = 0.292;
 pub_pose->publish( compound );
 ```
 
-For more examples on how to use this library, check the examples folder.
+For more examples on how to use this library, check the [examples](ros_babel_fish/examples) folder.
