@@ -38,9 +38,7 @@ jobs:
       matrix:
         setup:
           - rosdistro: jazzy
-            os: ubuntu-latest
-          - rosdistro: rolling
-            os: ubuntu-latest
+            os: ubuntu-24.04
     steps:
       - name: install build tools
         run: |
