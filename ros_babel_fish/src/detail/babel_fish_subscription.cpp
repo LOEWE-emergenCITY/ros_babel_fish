@@ -17,8 +17,7 @@ BabelFishSubscription::BabelFishSubscription(
     MessageTypeSupport::ConstSharedPtr type_support, const std::string &topic_name,
     const rclcpp::QoS &qos,
     rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
-    const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options,
-    SubscriptionTopicStatisticsSharedPtr subscription_topic_statistics )
+    const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options )
     : rclcpp::SubscriptionBase( node_base, type_support->type_support_handle, topic_name,
                                 options.to_rcl_subscription_options( qos ), options.event_callbacks,
                                 options.use_default_callbacks,
@@ -28,10 +27,6 @@ BabelFishSubscription::BabelFishSubscription(
       type_support_( std::move( type_support ) ), callback_( callback )
 {
   // TODO: Adding intra process support [very low priority]
-
-  if ( subscription_topic_statistics != nullptr ) {
-    this->subscription_topic_statistics_ = std::move( subscription_topic_statistics );
-  }
 
   TRACEPOINT( rclcpp_subscription_init, static_cast<const void *>( get_subscription_handle().get() ),
               static_cast<const void *>( this ) );
@@ -64,40 +59,14 @@ std::shared_ptr<rclcpp::SerializedMessage> BabelFishSubscription::create_seriali
 void BabelFishSubscription::handle_message( std::shared_ptr<void> &message,
                                             const rclcpp::MessageInfo &message_info )
 {
-  std::chrono::time_point<std::chrono::system_clock> now;
-  if ( subscription_topic_statistics_ ) {
-    // get current time before executing callback to
-    // exclude callback duration from topic statistics result.
-    now = std::chrono::system_clock::now();
-  }
-
   callback_.dispatch( CompoundMessage::make_shared( *type_support_, message ), message_info );
-
-  if ( subscription_topic_statistics_ ) {
-    const auto nanos = std::chrono::time_point_cast<std::chrono::nanoseconds>( now );
-    const auto time = rclcpp::Time( nanos.time_since_epoch().count() );
-    subscription_topic_statistics_->handle_message( message_info.get_rmw_message_info(), time );
-  }
 }
 
 void BabelFishSubscription::handle_serialized_message(
     const std::shared_ptr<rclcpp::SerializedMessage> &serialized_message,
     const rclcpp::MessageInfo &message_info )
 {
-  std::chrono::time_point<std::chrono::system_clock> now;
-  if ( subscription_topic_statistics_ ) {
-    // get current time before executing callback to
-    // exclude callback duration from topic statistics result.
-    now = std::chrono::system_clock::now();
-  }
-
   callback_.dispatch( serialized_message, message_info );
-
-  if ( subscription_topic_statistics_ ) {
-    const auto nanos = std::chrono::time_point_cast<std::chrono::nanoseconds>( now );
-    const auto time = rclcpp::Time( nanos.time_since_epoch().count() );
-    subscription_topic_statistics_->handle_message( message_info.get_rmw_message_info(), time );
-  }
 }
 
 void BabelFishSubscription::handle_loaned_message( void *loaned_message,

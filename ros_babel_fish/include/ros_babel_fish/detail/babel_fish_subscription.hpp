@@ -17,10 +17,6 @@ class BabelFish;
 
 class BabelFishSubscription : public rclcpp::SubscriptionBase
 {
-private:
-  using SubscriptionTopicStatisticsSharedPtr =
-      std::shared_ptr<rclcpp::topic_statistics::SubscriptionTopicStatistics>;
-
 public:
   RCLCPP_SMART_PTR_DEFINITIONS( BabelFishSubscription )
 
@@ -29,8 +25,7 @@ public:
       MessageTypeSupport::ConstSharedPtr type_support, const std::string &topic_name,
       const rclcpp::QoS &qos,
       rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
-      const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options,
-      SubscriptionTopicStatisticsSharedPtr subscription_topic_statistics = nullptr );
+      const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options );
 
   ~BabelFishSubscription() override;
 
@@ -76,8 +71,6 @@ private:
 
   MessageTypeSupport::ConstSharedPtr type_support_;
   rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback_;
-  /// Component which computes and publishes topic statistics for this subscriber
-  SubscriptionTopicStatisticsSharedPtr subscription_topic_statistics_{ nullptr };
 };
 } // namespace ros_babel_fish
 
