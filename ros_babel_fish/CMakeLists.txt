@@ -153,7 +153,7 @@ if (BUILD_TESTING)
   target_link_libraries(test_service_client ${PROJECT_NAME})
 
   ament_add_gtest(test_action_client test/action_client.cpp)
-  ament_target_dependencies(test_action_client example_interfaces example_interfaces ros_babel_fish_test_msgs)
+  ament_target_dependencies(test_action_client example_interfaces ros_babel_fish_test_msgs)
   target_link_libraries(test_action_client ${PROJECT_NAME})
 endif ()
 
