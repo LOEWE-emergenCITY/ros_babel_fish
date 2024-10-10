@@ -57,7 +57,7 @@ public:
                  const std::shared_ptr<rmw_request_id_t> &request_header,
                  std::shared_ptr<CompoundMessage> request, std::shared_ptr<CompoundMessage> response )
   {
-    TRACEPOINT( callback_start, static_cast<const void *>( this ), false );
+    TRACETOOLS_TRACEPOINT( callback_start, static_cast<const void *>( this ), false );
     if ( std::holds_alternative<SharedPtrCallback>( callback_ ) ) {
       (void)request_header;
       const auto &cb = std::get<SharedPtrCallback>( callback_ );
@@ -72,7 +72,7 @@ public:
       const auto &cb = std::get<SharedPtrDeferResponseCallbackWithServiceHandle>( callback_ );
       cb( service_handle, request_header, std::move( request ) );
     }
-    TRACEPOINT( callback_end, static_cast<const void *>( this ) );
+    TRACETOOLS_TRACEPOINT( callback_end, static_cast<const void *>( this ) );
   }
 
   void register_callback_for_tracing()
@@ -80,8 +80,8 @@ public:
 #ifndef TRACETOOLS_DISABLED
     std::visit(
         [this]( auto &&arg ) {
-          TRACEPOINT( rclcpp_callback_register, static_cast<const void *>( this ),
-                      tracetools::get_symbol( arg ) );
+          TRACETOOLS_TRACEPOINT( rclcpp_callback_register, static_cast<const void *>( this ),
+                                 tracetools::get_symbol( arg ) );
         },
         callback_ );
 #endif // TRACETOOLS_DISABLED

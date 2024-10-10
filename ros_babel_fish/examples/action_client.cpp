@@ -14,8 +14,8 @@ int main( int argc, char **argv )
   auto node = rclcpp::Node::make_shared( "action_client" );
   std::thread spin_thread( [node]() { rclcpp::spin( node ); } );
   BabelFish fish;
-  auto client = fish.create_action_client( *node, "fibonacci",
-                                           "action_tutorials_interfaces/action/Fibonacci" );
+  auto client =
+      fish.create_action_client( *node, "fibonacci", "example_interfaces/action/Fibonacci" );
 
   RCLCPP_INFO( node->get_logger(), "Waiting for server to come up." );
   if ( !client->wait_for_action_server( 10s ) ) {

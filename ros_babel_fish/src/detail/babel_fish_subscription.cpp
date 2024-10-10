@@ -33,10 +33,11 @@ BabelFishSubscription::BabelFishSubscription(
     this->subscription_topic_statistics_ = std::move( subscription_topic_statistics );
   }
 
-  TRACEPOINT( rclcpp_subscription_init, static_cast<const void *>( get_subscription_handle().get() ),
-              static_cast<const void *>( this ) );
-  TRACEPOINT( rclcpp_subscription_callback_added, static_cast<const void *>( this ),
-              static_cast<const void *>( &callback_ ) );
+  TRACETOOLS_TRACEPOINT( rclcpp_subscription_init,
+                         static_cast<const void *>( get_subscription_handle().get() ),
+                         static_cast<const void *>( this ) );
+  TRACETOOLS_TRACEPOINT( rclcpp_subscription_callback_added, static_cast<const void *>( this ),
+                         static_cast<const void *>( &callback_ ) );
   // The callback object gets copied, so if registration is done too early/before this point
   // (e.g. in `AnySubscriptionCallback::set()`), its address won't match any address used later
   // in subsequent tracepoints.
