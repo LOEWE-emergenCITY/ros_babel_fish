@@ -235,6 +235,25 @@ CompoundMessage::SharedPtr BabelFish::create_service_request_shared( const std::
   return CompoundMessage::make_shared( type_support->request() );
 }
 
+CompoundMessage BabelFish::create_action_goal( const std::string &type ) const
+{
+  const ActionTypeSupport::ConstSharedPtr &type_support = get_action_type_support( type );
+  if ( type_support == nullptr ) {
+    throw BabelFishException( "BabelFish doesn't know an action of type: " + type );
+  }
+  MessageMembersIntrospection introspection = type_support->goal_service_type_support->request();
+  size_t index =
+      std::find_if( introspection->members_, introspection->members_ + introspection->member_count_,
+                    []( const auto &a ) { return std::strcmp( a.name_, "goal" ) == 0; } ) -
+      introspection->members_;
+  return CompoundMessage( type_support->goal_service_type_support->request().getMember( index ) );
+}
+
+CompoundMessage::SharedPtr BabelFish::create_action_goal_shared( const std::string &type ) const
+{
+  return CompoundMessage::make_shared( create_action_goal( type ) );
+}
+
 MessageTypeSupport::ConstSharedPtr BabelFish::get_message_type_support( const std::string &type ) const
 {
   for ( const auto &provider : type_support_providers_ ) {
