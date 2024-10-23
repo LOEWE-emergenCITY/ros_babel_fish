@@ -143,7 +143,7 @@ public:
 
   /*!
    * Creates an empty message of the given type.
-   * @param type The message type, e.g.: "std_msgs/Header"
+   * @param type The message type, e.g.: "std_msgs/msg/Header"
    * @return An empty message of the given type
    *
    * @throws BabelFishException If the message description was not found
@@ -155,7 +155,7 @@ public:
 
   /*!
    * Creates a service request message for the given service type.
-   * @param type The type of the service, e.g., rosapi/GetParam
+   * @param type The type of the service, e.g., rcl_interfaces/srv/GetParameters
    * @return An empty service request message that can be used to call a service of the given type
    *
    * @throws BabelFishException If the service description was not found
@@ -164,6 +164,16 @@ public:
 
   //! @copydoc create_service_request
   CompoundMessage::SharedPtr create_service_request_shared( const std::string &type ) const;
+
+  /*!
+   * Creates an empty action goal for the given action type.
+   * @param type The type of the action, e.g., example_interfaces/action/Fibonacci
+   * @return An empty action goal message that can be used to send a goal to an action server.
+   */
+  CompoundMessage create_action_goal( const std::string &type ) const;
+
+  //! @copydoc create_action_goal_request
+  CompoundMessage::SharedPtr create_action_goal_shared( const std::string &type ) const;
 
   MessageTypeSupport::ConstSharedPtr get_message_type_support( const std::string &type ) const;
 
