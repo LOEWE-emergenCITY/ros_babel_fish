@@ -2,15 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "ros_babel_fish/idl/providers/local_type_support_provider.hpp"
-#include "ros_babel_fish/exceptions/babel_fish_exception.hpp"
+#include "ros_babel_fish/idl/exceptions.hpp"
 
 #include <ament_index_cpp/get_package_prefix.hpp>
-#include <ament_index_cpp/get_resources.hpp>
 #include <rcpputils/shared_library.hpp>
 #include <rcutils/error_handling.h>
-#include <rosidl_typesupport_c/identifier.h>
 #include <rosidl_typesupport_cpp/identifier.hpp>
-#include <rosidl_typesupport_cpp/service_type_support.hpp>
 #include <rosidl_typesupport_introspection_cpp/identifier.hpp>
 #include <rosidl_typesupport_introspection_cpp/service_introspection.hpp>
 
@@ -57,8 +54,8 @@ std::string get_typesupport_library_path( const std::string &package_name,
   std::string package_prefix;
   try {
     package_prefix = ament_index_cpp::get_package_prefix( package_name );
-  } catch ( ament_index_cpp::PackageNotFoundError &e ) {
-    throw BabelFishException( e.what() );
+  } catch ( std::runtime_error &e ) {
+    throw TypeSupportException( e.what() );
   }
 
   auto library_path = package_prefix + dynamic_library_folder + filename_prefix + package_name +
@@ -73,12 +70,12 @@ std::tuple<std::string, std::string, std::string> extract_type_identifier( const
   auto sep_position_front = full_type.find_first_of( type_separator );
   if ( sep_position_back == std::string::npos || sep_position_back == 0 ||
        sep_position_back == full_type.length() - 1 ) {
-    throw BabelFishException( "Message type '" + full_type +
-                              "' is not of the form package/type and cannot be processed" );
+    throw TypeSupportException( "Message type '" + full_type +
+                                "' is not of the form package/type and cannot be processed" );
   }
 
   std::string package_name = full_type.substr( 0, sep_position_front );
-  std::string middle_module = "";
+  std::string middle_module;
   if ( sep_position_back - sep_position_front > 0 ) {
     middle_module =
         full_type.substr( sep_position_front + 1, sep_position_back - sep_position_front - 1 );
@@ -91,9 +88,14 @@ std::tuple<std::string, std::string, std::string> extract_type_identifier( const
 std::shared_ptr<rcpputils::SharedLibrary>
 get_typesupport_library( const std::string &type, const std::string &typesupport_identifier )
 {
-  auto package_name = std::get<0>( extract_type_identifier( type ) );
-  auto library_path = get_typesupport_library_path( package_name, typesupport_identifier );
-  return std::make_shared<rcpputils::SharedLibrary>( library_path );
+  try {
+    auto package_name = std::get<0>( extract_type_identifier( type ) );
+    auto library_path = get_typesupport_library_path( package_name, typesupport_identifier );
+    return std::make_shared<rcpputils::SharedLibrary>( library_path );
+  } catch ( TypeSupportException &e ) {
+    throw TypeSupportException( "Failed to get typesupport library for message type '" + type +
+                                "': " + e.what() );
+  }
 }
 
 const rosidl_message_type_support_t *
@@ -101,7 +103,7 @@ get_typesupport_handle( const std::string &type, const std::string &typesupport_
                         const std::shared_ptr<rcpputils::SharedLibrary> &library )
 {
   if ( nullptr == library ) {
-    throw BabelFishException(
+    throw TypeSupportException(
         "rcpputils::SharedLibrary not initialized. Call get_typesupport_library first." );
   }
 
@@ -122,7 +124,7 @@ get_typesupport_handle( const std::string &type, const std::string &typesupport_
                        package_name + "__" + middle_module + "__" + type_name;
 
     if ( !library->has_symbol( symbol_name ) ) {
-      throw std::runtime_error(
+      throw TypeSupportException(
           std::string(
               " Could not find symbol for message type support handle getter. rcutils error: " ) +
           rcutils_get_error_string().str +
@@ -130,16 +132,16 @@ get_typesupport_handle( const std::string &type, const std::string &typesupport_
           "merged yet." );
     }
 
-    const rosidl_message_type_support_t *( *get_ts )() = nullptr;
+    const rosidl_message_type_support_t *( *get_ts )();
     get_ts = (decltype( get_ts ))library->get_symbol( symbol_name );
 
     if ( !get_ts ) {
-      throw std::runtime_error{ " Symbol of wrong type." };
+      throw TypeSupportException{ " Symbol of wrong type." };
     }
     auto type_support = get_ts();
     return type_support;
-  } catch ( std::runtime_error &e ) {
-    throw BabelFishException( rcutils_dynamic_loading_error.str() + e.what() );
+  } catch ( TypeSupportException &e ) {
+    throw TypeSupportException( rcutils_dynamic_loading_error.str() + e.what() );
   }
 }
 // ==== End of block ===
@@ -149,7 +151,7 @@ get_service_typesupport_handle( const std::string &type, const std::string &type
                                 const std::shared_ptr<rcpputils::SharedLibrary> &library )
 {
   if ( nullptr == library ) {
-    throw BabelFishException(
+    throw TypeSupportException(
         "rcpputils::SharedLibrary not initialized. Call get_typesupport_library first." );
   }
 
@@ -170,7 +172,7 @@ get_service_typesupport_handle( const std::string &type, const std::string &type
     auto symbol_name = typesupport_identifier + "__get_service_type_support_handle__" + package_name +
                        "__" + ( middle_module.empty() ? "srv" : middle_module ) + "__" + type_name;
     if ( !library->has_symbol( symbol_name ) ) {
-      throw std::runtime_error(
+      throw TypeSupportException(
           std::string(
               " Could not find symbol for message type support handle getter. rcutils error: " ) +
           rcutils_get_error_string().str +
@@ -178,16 +180,16 @@ get_service_typesupport_handle( const std::string &type, const std::string &type
           "merged yet." );
     }
 
-    const rosidl_service_type_support_t *( *get_ts )() = nullptr;
+    const rosidl_service_type_support_t *( *get_ts )();
     get_ts = (decltype( get_ts ))library->get_symbol( symbol_name );
 
     if ( !get_ts ) {
-      throw std::runtime_error{ " Symbol of wrong type." };
+      throw TypeSupportException{ " Symbol of wrong type." };
     }
     auto type_support = get_ts();
     return type_support;
-  } catch ( std::runtime_error &e ) {
-    throw BabelFishException( rcutils_dynamic_loading_error.str() + e.what() );
+  } catch ( TypeSupportException &e ) {
+    throw TypeSupportException( rcutils_dynamic_loading_error.str() + e.what() );
   }
 }
 
@@ -196,7 +198,7 @@ get_action_typesupport_handle( const std::string &type, const std::string &types
                                const std::shared_ptr<rcpputils::SharedLibrary> &library )
 {
   if ( nullptr == library ) {
-    throw std::runtime_error(
+    throw TypeSupportException(
         "rcpputils::SharedLibrary not initialized. Call get_typesupport_library first." );
   }
 
@@ -219,7 +221,7 @@ get_action_typesupport_handle( const std::string &type, const std::string &types
                        "__" + type_name;
 
     if ( !library->has_symbol( symbol_name ) ) {
-      throw std::runtime_error(
+      throw TypeSupportException(
           std::string(
               " Could not find symbol for message type support handle getter. rcutils error: " ) +
           rcutils_get_error_string().str +
@@ -227,16 +229,16 @@ get_action_typesupport_handle( const std::string &type, const std::string &types
           "merged yet." );
     }
 
-    const rosidl_action_type_support_t *( *get_ts )() = nullptr;
+    const rosidl_action_type_support_t *( *get_ts )();
     get_ts = (decltype( get_ts ))library->get_symbol( symbol_name );
 
     if ( !get_ts ) {
-      throw std::runtime_error{ " Symbol of wrong type." };
+      throw TypeSupportException{ " Symbol of wrong type." };
     }
     auto type_support = get_ts();
     return type_support;
   } catch ( std::runtime_error &e ) {
-    throw BabelFishException( rcutils_dynamic_loading_error.str() + e.what() );
+    throw TypeSupportException( rcutils_dynamic_loading_error.str() + e.what() );
   }
 }
 } // namespace
