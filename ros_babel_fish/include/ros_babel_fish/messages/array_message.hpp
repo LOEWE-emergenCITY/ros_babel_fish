@@ -70,11 +70,10 @@ protected:
 template<typename T, bool BOUNDED, bool FIXED_LENGTH>
 class ArrayMessage_ final : public ArrayMessageBase
 {
-protected:
-  typedef typename message_type_traits::array_type<T, FIXED_LENGTH>::Reference Reference;
-  typedef typename message_type_traits::array_type<T, FIXED_LENGTH>::ReturnType ReturnType;
-  typedef typename message_type_traits::array_type<T, FIXED_LENGTH>::ConstReturnType ConstReturnType;
-  typedef typename message_type_traits::array_type<T, FIXED_LENGTH>::ArgumentType ArgumentType;
+  using Reference = typename message_type_traits::array_type<T, FIXED_LENGTH>::Reference;
+  using ReturnType = typename message_type_traits::array_type<T, FIXED_LENGTH>::ReturnType;
+  using ConstReturnType = typename message_type_traits::array_type<T, FIXED_LENGTH>::ConstReturnType;
+  using ArgumentType = typename message_type_traits::array_type<T, FIXED_LENGTH>::ArgumentType;
   static_assert( ( FIXED_LENGTH && BOUNDED ) || !FIXED_LENGTH,
                  "Fixed length can only be true if bounded is also true!" );
 
@@ -94,11 +93,11 @@ public:
   using Message::operator[];
 
   template<typename ENABLED = T>
-  typename std::enable_if<FIXED_LENGTH || !std::is_same<ENABLED, bool>::value, Reference>::type
+  typename std::enable_if_t<FIXED_LENGTH || !std::is_same_v<ENABLED, bool>, Reference>
   operator[]( size_t index )
   {
     using Container =
-        typename std::conditional<FIXED_LENGTH, std::array<T, 987654321000>, std::vector<T>>::type;
+        typename std::conditional_t<FIXED_LENGTH, std::array<T, 987654321000>, std::vector<T>>;
     if ( member_->get_function == nullptr ) {
       if ( index >= size() )
         throw std::out_of_range( "Index was out of range of array!" );
@@ -108,7 +107,7 @@ public:
   }
 
   template<typename ENABLED = T>
-  typename std::enable_if<!FIXED_LENGTH && std::is_same<ENABLED, bool>::value, Reference>::type
+  typename std::enable_if_t<!FIXED_LENGTH && std::is_same_v<ENABLED, bool>, Reference>
   operator[]( size_t index )
   {
     // Need to specialize for bool because std::vector<bool> is specialized and uses one bit per
@@ -121,7 +120,7 @@ public:
   ConstReturnType operator[]( size_t index ) const
   {
     using Container =
-        typename std::conditional<FIXED_LENGTH, std::array<T, 987654321000>, std::vector<T>>::type;
+        typename std::conditional_t<FIXED_LENGTH, std::array<T, 987654321000>, std::vector<T>>;
     if ( member_->get_function == nullptr ) {
       if ( index >= size() )
         throw std::out_of_range( "Index was out of range of array!" );
@@ -143,7 +142,7 @@ public:
 
   //! Method only for fixed length arrays to fill the array with the given value.
   template<bool ENABLED = FIXED_LENGTH>
-  typename std::enable_if<ENABLED, void>::type fill( ArgumentType &value )
+  typename std::enable_if_t<ENABLED, void> fill( ArgumentType &value )
   {
     for ( size_t i = 0; i < maxSize(); ++i ) assign( i, value );
   }
@@ -207,6 +206,16 @@ public:
     } else {
       resize( 0 );
     }
+  }
+
+  template<typename ArrayT, size_t ArrayLength, bool ENABLED = FIXED_LENGTH>
+  typename std::enable_if_t<ENABLED, ArrayMessage_<T, BOUNDED, FIXED_LENGTH> &>
+  operator=( const std::array<ArrayT, ArrayLength> &other )
+  {
+    if ( size() != ArrayLength )
+      throw std::length_error( "Array size does not match!" );
+    for ( size_t i = 0; i < ArrayLength; ++i ) assign( i, other[i] );
+    return *this;
   }
 
 protected:
