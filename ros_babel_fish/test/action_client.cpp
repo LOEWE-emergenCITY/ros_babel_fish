@@ -10,6 +10,7 @@
 #include <ros_babel_fish_test_msgs/action/simple_test.hpp>
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
 #include <rosidl_typesupport_c/type_support_map.h>
 
 using namespace ros_babel_fish;
@@ -45,7 +46,6 @@ TEST( ActionClientTest, actionLookup )
 
   const rosidl_action_type_support_t *ts = rosidl_typesupport_cpp::get_action_type_support_handle<
       ros_babel_fish_test_msgs::action::SimpleTest>();
-  //  EXPECT_EQ(type_support->type_support_handle, *ts);
   EXPECT_NE( ts, nullptr );
   EXPECT_TRUE( Equal( type_support->type_support_handle, *ts ) );
 
@@ -59,89 +59,110 @@ TEST( ActionClientTest, actionLookup )
   EXPECT_EQ( ts_map, map );
 }
 
-TEST( ActionClientTest, simpleActionClient )
+TEST( ActionClientTest, actionClient )
 {
-  //  auto provider = std::make_shared<MessageOnlyDescriptionProvider>();
-  //  BabelFish fish( provider );
-  //  provider->registerMessageByDefinition( ros::message_traits::datatype<SimpleTestAction>(),
-  //                                         ros::message_traits::definition<SimpleTestAction>());
-  //  MessageDescription::ConstSharedPtr goal_description = provider->getMessageDescription(
-  //    ros::message_traits::datatype<SimpleTestActionGoal>());
-  //  actionlib::SimpleActionClient <BabelFishAction> client( goal_description, "simple" );
-  //  if ( !client.waitForServer( ros::Duration( 10 )))
-  //    FAIL() << "ActionServer did not start within 10 seconds!";
-  //  ASSERT_TRUE( client.isServerConnected());
-  //
-  //  // This goal should succeed
-  //  Message::SharedPtr goal = fish.createMessage( "ros_babel_fish_test_msgs/SimpleTestGoal" );
-  //  (*goal)["goal"] = 5;
-  //  CompoundMessage::ConstSharedPtr goal_msg = fish.translateMessage( goal );
-  //  actionlib::SimpleClientGoalState state = client.sendGoalAndWait( *goal_msg, ros::Duration( 10 ));
-  //  EXPECT_EQ( state, actionlib::SimpleClientGoalState::SUCCEEDED );
-  //  CompoundMessage::ConstSharedPtr result = client.getResult();
-  //  TranslatedMessage::ConstSharedPtr translated = fish.translateMessage( result );
-  //  EXPECT_EQ((*translated->translated_message)["result"].value<int32_t>(), 4 );
-  //
-  //  // This goal should abort after 10
-  //  goal = fish.createMessage( "ros_babel_fish_test_msgs/SimpleTestGoal" );
-  //  (*goal)["goal"] = 20;
-  //  goal_msg = fish.translateMessage( goal );
-  //  std::vector<int> feedback_values;
-  //  client.sendGoal( *goal_msg, {}, {}, boost::function < void(
-  //  const CompoundMessage::ConstSharedPtr & )>(
-  //    [ & ]( const CompoundMessage::ConstSharedPtr &feedback )
-  //    {
-  //      TranslatedMessage::ConstSharedPtr translated = fish.translateMessage( feedback );
-  //      feedback_values.push_back((*translated->translated_message)["feedback"].value<int32_t>());
-  //    }));
-  //  ASSERT_EQ( client.getState(), actionlib::SimpleClientGoalState::PENDING );
-  //  if ( !client.waitForResult( ros::Duration( 10 )))
-  //  {
-  //    FAIL() << "ActionServer did not finish in 10 seconds!";
-  //  }
-  //  ASSERT_EQ( feedback_values.size(), 10U );
-  //  for ( int i = 0; i < 10; ++i )
-  //  {
-  //    if ( feedback_values[i] != i ) FAIL() << "Feedback at " << i << " should be " << i << "!";
-  //  }
-  //  EXPECT_EQ( client.getState(), actionlib::SimpleClientGoalState::ABORTED );
-  //  result = client.getResult();
-  //  translated = fish.translateMessage( result );
-  //  EXPECT_EQ((*translated->translated_message)["result"].value<int32_t>(), 10 );
-  //
-  //  // This goal should be preempted
-  //  goal = fish.createMessage( "ros_babel_fish_test_msgs/SimpleTestGoal" );
-  //  (*goal)["goal"] = 1000;
-  //  goal_msg = fish.translateMessage( goal );
-  //  feedback_values.clear();
-  //  client.sendGoal( *goal_msg, {}, {}, boost::function < void(
-  //  const CompoundMessage::ConstSharedPtr & )>(
-  //    [ & ]( const CompoundMessage::ConstSharedPtr &feedback )
-  //    {
-  //      TranslatedMessage::ConstSharedPtr translated = fish.translateMessage( feedback );
-  //      feedback_values.push_back((*translated->translated_message)["feedback"].value<int32_t>());
-  //    }));
-  //  usleep( 500000 ); // Sleep for 500ms
-  //  client.cancelGoal();
-  //  if ( !client.waitForResult( ros::Duration( 1 )))
-  //    FAIL() << "ActionServer did not preempt in 1 second!";
-  //  int last_feedback = 0;
-  //  for ( size_t i = 0; i < feedback_values.size(); ++i )
-  //  {
-  //    if ( feedback_values[i] != int( i )) FAIL() << "Feedback at " << i << " should be " << i << "!";
-  //    last_feedback = feedback_values[i];
-  //  }
-  //  EXPECT_EQ( client.getState(), actionlib::SimpleClientGoalState::PREEMPTED );
-  //  result = client.getResult();
-  //  translated = fish.translateMessage( result );
-  //  EXPECT_EQ((*translated->translated_message)["result"].value<int32_t>(), last_feedback );
+  using namespace std::chrono_literals;
+  using Action = ros_babel_fish_test_msgs::action::SimpleTest;
+  rclcpp_action::Server<Action>::SharedPtr server = rclcpp_action::create_server<Action>(
+      node, "ros_babel_fish_client_test_server",
+      []( const rclcpp_action::GoalUUID &, const std::shared_ptr<const Action::Goal> & ) {
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+      },
+      []( const std::shared_ptr<rclcpp_action::ServerGoalHandle<Action>> & ) {
+        return rclcpp_action::CancelResponse::ACCEPT;
+      },
+      []( const std::shared_ptr<rclcpp_action::ServerGoalHandle<Action>> &handle ) {
+        std::thread t( [handle]() {
+          auto result = std::make_shared<Action::Result>();
+          for ( int i = 0; i < handle->get_goal()->goal; ++i ) {
+            if ( i >= 10 && i >= handle->get_goal()->goal / 2 ) {
+              result->result = i;
+              handle->abort( result );
+              return;
+            }
+            std::this_thread::sleep_for( 50ms );
+            auto feedback = std::make_shared<Action::Feedback>();
+            feedback->feedback = i;
+            handle->publish_feedback( feedback );
+            if ( handle->is_canceling() ) {
+              result->result = i;
+              handle->canceled( result );
+              return;
+            }
+          }
+          result->result = handle->get_goal()->goal;
+          handle->succeed( result );
+        } );
+        t.detach();
+      } );
+
+  BabelFish fish;
+  auto client = fish.create_action_client( *node, "ros_babel_fish_client_test_server",
+                                           "ros_babel_fish_test_msgs/action/SimpleTest" );
+  ASSERT_TRUE( client->wait_for_action_server( 5s ) );
+  ASSERT_TRUE( client->action_server_is_ready() );
+
+  // This goal should succeed
+  auto goal = client->create_goal();
+  goal["goal"] = 2;
+  auto gh_future = client->async_send_goal( goal );
+  ASSERT_EQ( gh_future.wait_for( 30s ), std::future_status::ready );
+  auto goal_handle = gh_future.get();
+  ASSERT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_ACCEPTED );
+  auto result = client->async_get_result( goal_handle );
+  ASSERT_EQ( result.wait_for( 3s ), std::future_status::ready );
+  ASSERT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_SUCCEEDED );
+  auto result_msg = result.get();
+  EXPECT_EQ( ( *result_msg.result )["result"].value<int32_t>(), 2 );
+
+  // This goal should abort after 10
+  goal = client->create_goal();
+  goal["goal"] = 20;
+  std::vector<int> feedback_values;
+  gh_future = client->async_send_goal(
+      goal, { {},
+              [&feedback_values]( const BabelFishActionClient::GoalHandle::SharedPtr &,
+                                  const CompoundMessage::ConstSharedPtr &feedback ) {
+                feedback_values.push_back( ( *feedback )["feedback"].value<int32_t>() );
+              },
+              {} } );
+  ASSERT_EQ( gh_future.wait_for( 3s ), std::future_status::ready );
+  goal_handle = gh_future.get();
+  ASSERT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_ACCEPTED );
+  result = client->async_get_result( goal_handle );
+  ASSERT_EQ( result.wait_for( 10s ), std::future_status::ready );
+  ASSERT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_ABORTED );
+  result_msg = result.get();
+  EXPECT_EQ( ( *result_msg.result )["result"].value<int32_t>(), 10 );
+
+  ASSERT_EQ( feedback_values.size(), 10U );
+  for ( int i = 0; i < 10; ++i ) {
+    if ( feedback_values[i] != i )
+      FAIL() << "Feedback at " << i << " should be " << i << "!";
+  }
+
+  // This goal should be preempted
+  goal = client->create_goal();
+  goal["goal"] = 200;
+  gh_future = client->async_send_goal( goal );
+  ASSERT_EQ( gh_future.wait_for( 3s ), std::future_status::ready );
+  goal_handle = gh_future.get();
+  std::this_thread::sleep_for( 200ms );
+  auto cancel_response_future = client->async_cancel_goal( goal_handle );
+  ASSERT_EQ( cancel_response_future.wait_for( 1s ), std::future_status::ready )
+      << "ActionServer did not cancel in 1 second!";
+  result = client->async_get_result( goal_handle );
+  ASSERT_EQ( result.wait_for( 10s ), std::future_status::ready );
+  EXPECT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_CANCELED );
+  result_msg = result.get();
+  EXPECT_LT( ( *result_msg.result )["result"].value<int32_t>(), 200 );
 }
 
 int main( int argc, char **argv )
 {
   testing::InitGoogleTest( &argc, argv );
   rclcpp::init( argc, argv );
-  node = std::make_shared<rclcpp::Node>( "service_client_test" );
+  node = std::make_shared<rclcpp::Node>( "action_client_test" );
   std::thread spinner( []() { rclcpp::spin( node ); } );
   int result = RUN_ALL_TESTS();
   rclcpp::shutdown();
