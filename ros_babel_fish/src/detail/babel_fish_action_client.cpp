@@ -43,11 +43,10 @@ Client<ros_babel_fish::impl::BabelFishAction>::async_send_goal( const CompoundMe
   auto future = promise->get_future();
   CompoundMessage goal_request( type_support_->goal_service_type_support->request() );
   auto uuid = this->generate_goal_id();
-  auto &request_uuid = goal_request["goal_id"]["uuid"].as<FixedLengthArrayMessage<uint8_t>>();
-  for ( size_t i = 0; i < uuid.size(); ++i ) request_uuid[i] = uuid[i];
-  goal_request["goal"] = goal;
-  this->send_goal_request( goal_request.type_erased_message(), [this, promise, options = options,
-                                                                uuid]( std::shared_ptr<void> response ) {
+  goal_request["goal_id"]["uuid"].as<FixedLengthArrayMessage<uint8_t>>() = uuid;
+  goal_request["goal"].as<CompoundMessage>() = goal;
+  this->send_goal_request( goal_request.type_erased_message(), [this, promise, options, uuid](
+                                                                   std::shared_ptr<void> response ) {
     CompoundMessage goal_response( type_support_->goal_service_type_support->response(), response );
     if ( !goal_response["accepted"].value<bool>() ) {
       promise->set_value( nullptr );
@@ -61,7 +60,7 @@ Client<ros_babel_fish::impl::BabelFishAction>::async_send_goal( const CompoundMe
     std::shared_ptr<GoalHandle> goal_handle(
         new GoalHandle( goal_info, options.feedback_callback, options.result_callback ) );
     {
-      std::lock_guard<std::mutex> guard( goal_handles_mutex_ );
+      std::lock_guard guard( goal_handles_mutex_ );
       goal_handles_[uuid] = goal_handle;
     }
     promise->set_value( goal_handle );
@@ -74,7 +73,7 @@ Client<ros_babel_fish::impl::BabelFishAction>::async_send_goal( const CompoundMe
 
   // Clean old goal handles
   {
-    std::lock_guard<std::mutex> guard( goal_handles_mutex_ );
+    std::lock_guard guard( goal_handles_mutex_ );
     auto it = goal_handles_.begin();
     while ( it != goal_handles_.end() ) {
       if ( !it->second.lock() )
@@ -90,7 +89,7 @@ std::shared_future<rclcpp_action::ClientGoalHandle<ros_babel_fish::impl::BabelFi
 Client<impl::BabelFishAction>::async_get_result( typename GoalHandle::SharedPtr goal_handle,
                                                  ResultCallback result_callback )
 {
-  std::lock_guard<std::mutex> lock( goal_handles_mutex_ );
+  std::lock_guard lock( goal_handles_mutex_ );
   if ( goal_handles_.find( goal_handle->get_goal_id() ) == goal_handles_.end() )
     throw exceptions::UnknownGoalHandleError();
 
@@ -109,15 +108,13 @@ std::shared_future<ros_babel_fish::CompoundMessage>
 Client<impl::BabelFishAction>::async_cancel_goal( GoalHandle::SharedPtr goal_handle,
                                                   CancelCallback cancel_callback )
 {
-  std::lock_guard<std::mutex> lock( goal_handles_mutex_ );
+  std::lock_guard lock( goal_handles_mutex_ );
   if ( goal_handles_.count( goal_handle->get_goal_id() ) == 0 ) {
     throw exceptions::UnknownGoalHandleError();
   }
   CompoundMessage cancel_request( type_support_->cancel_service_type_support->request() );
   const auto &uuid = goal_handle->get_goal_id();
-  auto &request_uuid =
-      cancel_request["goal_info"]["goal_id"]["uuid"].as<FixedLengthArrayMessage<uint8_t>>();
-  for ( size_t i = 0; i < uuid.size(); ++i ) request_uuid[i] = uuid[i];
+  cancel_request["goal_info"]["goal_id"]["uuid"].as<FixedLengthArrayMessage<uint8_t>>() = uuid;
   return async_cancel( cancel_request, cancel_callback );
 }
 
@@ -145,7 +142,7 @@ Client<impl::BabelFishAction>::async_cancel( CompoundMessage cancel_request,
 {
   // Put promise in the heap to move it around.
   auto promise = std::make_shared<std::promise<CancelResponse>>();
-  std::shared_future<CancelResponse> future( promise->get_future() );
+  std::shared_future future( promise->get_future() );
   this->send_cancel_request(
       cancel_request.type_erased_message(),
       [this, cancel_callback, promise]( std::shared_ptr<void> response ) mutable {
@@ -187,7 +184,7 @@ void Client<impl::BabelFishAction>::handle_feedback_message( std::shared_ptr<voi
       feedback_message["goal_id"]["uuid"].as<FixedLengthArrayMessage<uint8_t>>();
   for ( size_t i = 0; i < goal_id.size(); ++i ) goal_id[i] = feedback_goal_id[i];
 
-  std::lock_guard<std::mutex> guard( goal_handles_mutex_ );
+  std::lock_guard guard( goal_handles_mutex_ );
   // Feedback is not for one of our goal handles
   auto it = goal_handles_.find( goal_id );
   if ( it == goal_handles_.end() )
@@ -212,7 +209,7 @@ void Client<impl::BabelFishAction>::handle_status_message( std::shared_ptr<void>
 {
   CompoundMessage status_message( *type_support_->status_message_type_support, message );
 
-  std::lock_guard<std::mutex> guard( goal_handles_mutex_ );
+  std::lock_guard guard( goal_handles_mutex_ );
   const auto &status_list = status_message["status_list"].as<CompoundArrayMessage>();
   for ( size_t i = 0; i < status_list.size(); ++i ) {
     const auto &status = status_list[i];
@@ -255,7 +252,7 @@ void Client<ros_babel_fish::impl::BabelFishAction>::make_result_aware( GoalHandl
           wrapped_result.goal_id = goal_handle->get_goal_id();
           wrapped_result.code = static_cast<ResultCode>( response["status"].value<int8_t>() );
           goal_handle->set_result( wrapped_result );
-          std::lock_guard<std::mutex> lock( goal_handles_mutex_ );
+          std::lock_guard lock( goal_handles_mutex_ );
           goal_handles_.erase( goal_handle->get_goal_id() );
         } );
   } catch ( rclcpp::exceptions::RCLError &ex ) {
