@@ -114,6 +114,13 @@ public:
                                                   const std::string &type, const rclcpp::QoS &qos,
                                                   rclcpp::PublisherOptions options = {} );
 
+  /*!
+   * Creates a service server for the given service name and type.
+   * @param service_name The name under which the service should be registered.
+   * @param type The type of the service, e.g., rcl_interfaces/srv/GetParameters
+   * @param callback The callback that should be called when the service is called.
+   * @return A pointer to the created service server.
+   */
   template<typename CallbackT>
   BabelFishService::SharedPtr
   create_service( rclcpp::Node &node, const std::string &service_name, const std::string &type,
@@ -125,17 +132,30 @@ public:
     return create_service( node, service_name, type, any_callback, qos_profile, group );
   }
 
+  //! @copydoc create_service
   BabelFishService::SharedPtr
   create_service( rclcpp::Node &node, const std::string &service_name, const std::string &type,
                   AnyServiceCallback callback,
                   const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
                   rclcpp::CallbackGroup::SharedPtr group = nullptr );
 
+  /*!
+   * Creates a service client for the given service name and type.
+   * @param service_name The name under which the service server is registered.
+   * @param type The type of the service, e.g., rcl_interfaces/srv/GetParameters
+   * @return A service client that can be used to call the service.
+   */
   BabelFishServiceClient::SharedPtr
   create_service_client( rclcpp::Node &node, const std::string &service_name, const std::string &type,
                          const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
                          rclcpp::CallbackGroup::SharedPtr group = nullptr );
 
+  /*!
+   * Creates an action client for the given name and type.
+   * @param name The name under which the action server is registered.
+   * @param type The type of the action
+   * @return An action client that can be used to send goals to the action server.
+   */
   BabelFishActionClient::SharedPtr create_action_client(
       rclcpp::Node &node, const std::string &name, const std::string &type,
       const rcl_action_client_options_t &options = rcl_action_client_get_default_options(),
