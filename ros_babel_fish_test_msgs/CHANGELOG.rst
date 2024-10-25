@@ -2,6 +2,11 @@
 Changelog for package ros_babel_fish_test_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Updated test message and added goal rejected and cancel rejected tests for client.
+* Contributors: Stefan Fabian
+
 0.9.3 (2024-08-16)
 ------------------
 * Removed unneeded dependency.
