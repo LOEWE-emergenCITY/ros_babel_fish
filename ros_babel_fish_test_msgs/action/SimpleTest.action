@@ -1,8 +1,8 @@
 # goal
-int32 goal
+int32 target
 ---
 # result
-int32 result
+int32 final_value
 ---
 # feedback
-int32 feedback
+int32 current_value
