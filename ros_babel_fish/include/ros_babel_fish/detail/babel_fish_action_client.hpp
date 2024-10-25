@@ -4,29 +4,8 @@
 #ifndef ROS_BABEL_FISH_BABEL_FISH_ACTION_CLIENT_HPP
 #define ROS_BABEL_FISH_BABEL_FISH_ACTION_CLIENT_HPP
 
-#include "ros_babel_fish/messages/compound_message.hpp"
+#include "ros_babel_fish/detail/babel_fish_action.hpp"
 #include <rclcpp_action/client.hpp>
-
-namespace ros_babel_fish
-{
-struct ActionTypeSupport;
-
-namespace impl
-{
-struct BabelFishAction {
-  using Feedback = CompoundMessage;
-  using Goal = CompoundMessage;
-  using Result = CompoundMessage;
-
-  typedef struct Impl {
-    struct CancelGoalService {
-      using Request = CompoundMessage;
-      using Response = CompoundMessage;
-    };
-  } Impl;
-};
-} // namespace impl
-} // namespace ros_babel_fish
 
 namespace rclcpp_action
 {

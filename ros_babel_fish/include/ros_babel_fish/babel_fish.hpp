@@ -5,6 +5,7 @@
 #define ROS_BABEL_FISH_BABEL_FISH_HPP
 
 #include "ros_babel_fish/detail/babel_fish_action_client.hpp"
+#include "ros_babel_fish/detail/babel_fish_action_server.hpp"
 #include "ros_babel_fish/detail/babel_fish_publisher.hpp"
 #include "ros_babel_fish/detail/babel_fish_service.hpp"
 #include "ros_babel_fish/detail/babel_fish_service_client.hpp"
@@ -149,6 +150,23 @@ public:
   create_service_client( rclcpp::Node &node, const std::string &service_name, const std::string &type,
                          const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
                          rclcpp::CallbackGroup::SharedPtr group = nullptr );
+
+  /*!
+   * Creates an action server for the given name and type.
+   * @param name The name under which the action server is registered.
+   * @param type They type of the action.
+   * @param handle_goal Callback when a new goal was received.
+   * @param handle_cancel Callback when a cancel request was received.
+   * @param handle_accepted Callback when a goal was accepted. Should start executing the goal.
+   * @return An action server that goals can be sent to for processing.
+   */
+  BabelFishActionServer::SharedPtr create_action_server(
+      rclcpp::Node &node, const std::string &name, const std::string &type,
+      BabelFishActionServer::GoalCallback handle_goal,
+      BabelFishActionServer::CancelCallback handle_cancel,
+      BabelFishActionServer::AcceptedCallback handle_accepted,
+      const rcl_action_server_options_t &options = rcl_action_server_get_default_options(),
+      rclcpp::CallbackGroup::SharedPtr group = nullptr );
 
   /*!
    * Creates an action client for the given name and type.
