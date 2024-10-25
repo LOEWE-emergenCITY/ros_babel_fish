@@ -218,9 +218,10 @@ struct ValueAssigner<std::string> {
 template<>
 struct ValueAssigner<CompoundMessage> {
   template<typename ValueType>
-  static void assignValue( Message &, const ValueType & )
+  static void assignValue( Message &msg, const ValueType & )
   {
-    throw BabelFishException( "Can not assign value to a CompoundMessage!" );
+    throw BabelFishException( "Can not assign value to a CompoundMessage! I am a: " +
+                              msg.as<CompoundMessage>().datatype() );
   }
 };
 

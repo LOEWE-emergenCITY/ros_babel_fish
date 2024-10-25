@@ -24,7 +24,7 @@ jobs:
           clang-format -Werror -n -style=file $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.c' -o -name '*.cc')
       - name: Check C++
         run: |
-          cppcheck --force --quiet --error-exitcode=1 .
+          cppcheck --force --quiet --inline-suppr --error-exitcode=1 .
       - name: Lint package.xml
         run: |
           xmllint --noout --schema http://download.ros.org/schema/package_format3.xsd $(find . -name 'package.xml')

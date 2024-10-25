@@ -152,6 +152,55 @@ BabelFish::create_service_client( rclcpp::Node &node, const std::string &service
   return result;
 }
 
+BabelFishActionServer::SharedPtr BabelFish::create_action_server(
+    rclcpp::Node &node, const std::string &name, const std::string &type,
+    BabelFishActionServer::GoalCallback handle_goal,
+    BabelFishActionServer::CancelCallback handle_cancel,
+    BabelFishActionServer::AcceptedCallback handle_accepted,
+    const rcl_action_server_options_t &options, rclcpp::CallbackGroup::SharedPtr group )
+{
+  ActionTypeSupport::ConstSharedPtr type_support = get_action_type_support( type );
+  if ( type_support == nullptr ) {
+    throw BabelFishException( "Failed to create an action client for type: " + type +
+                              ". Type not found!" );
+  }
+  std::weak_ptr<rclcpp::node_interfaces::NodeWaitablesInterface> weak_node =
+      node.get_node_waitables_interface();
+  std::weak_ptr<rclcpp::CallbackGroup> weak_group = group;
+  bool group_is_null = ( nullptr == group.get() );
+
+  auto deleter = [weak_node, weak_group, group_is_null]( BabelFishActionServer *ptr ) {
+    if ( nullptr == ptr ) {
+      return;
+    }
+    if ( auto shared_node = weak_node.lock(); shared_node != nullptr ) {
+      // API expects a shared pointer, give it one with a deleter that does nothing.
+      std::shared_ptr<BabelFishActionServer> fake_shared_ptr(
+          ptr, []( const BabelFishActionServer * ) { /* do nothing */ } );
+
+      if ( group_is_null ) {
+        // Was added to default group
+        shared_node->remove_waitable( fake_shared_ptr, nullptr );
+      } else {
+        // Was added to a specific group
+        auto shared_group = weak_group.lock();
+        if ( shared_group ) {
+          shared_node->remove_waitable( fake_shared_ptr, shared_group );
+        }
+      }
+    }
+    delete ptr;
+  };
+  std::shared_ptr<BabelFishActionServer> server(
+      new BabelFishActionServer( node.get_node_base_interface(), node.get_node_clock_interface(),
+                                 node.get_node_logging_interface(), name, type_support, options,
+                                 std::move( handle_goal ), std::move( handle_cancel ),
+                                 std::move( handle_accepted ) ),
+      deleter );
+  node.get_node_waitables_interface()->add_waitable( server, std::move( group ) );
+  return server;
+}
+
 BabelFishActionClient::SharedPtr
 BabelFish::create_action_client( rclcpp::Node &node, const std::string &name,
                                  const std::string &type, const rcl_action_client_options_t &options,
@@ -171,10 +220,10 @@ BabelFish::create_action_client( rclcpp::Node &node, const std::string &name,
     if ( nullptr == ptr ) {
       return;
     }
-    auto shared_node = weak_node.lock();
-    if ( shared_node ) {
+    if ( auto shared_node = weak_node.lock(); shared_node != nullptr ) {
       // API expects a shared pointer, give it one with a deleter that does nothing.
-      std::shared_ptr<BabelFishActionClient> fake_shared_ptr( ptr, []( BabelFishActionClient * ) {} );
+      std::shared_ptr<BabelFishActionClient> fake_shared_ptr(
+          ptr, []( const BabelFishActionClient * ) { /* not ours to delete */ } );
 
       if ( group_is_null ) {
         // Was added to default group
