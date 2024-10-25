@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.10.1 (2024-10-25)
+-------------------
 * Add ActionServer (`#9 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/9>`_)
   * More verbose error message when trying to assign a value to a CompoundMessage.
   * Moved BabelFishAction definition to separate header in preparation for BabelFishActionServer.
