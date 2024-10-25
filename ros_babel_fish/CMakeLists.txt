@@ -30,6 +30,7 @@ find_package(rosidl_typesupport_introspection_cpp REQUIRED)
 
 set(SOURCES
   src/detail/babel_fish_action_client.cpp
+  src/detail/babel_fish_action_server.cpp
   src/detail/babel_fish_publisher.cpp
   src/detail/babel_fish_service.cpp
   src/detail/babel_fish_service_client.cpp
@@ -155,6 +156,10 @@ if (BUILD_TESTING)
   ament_add_gtest(test_action_client test/action_client.cpp)
   ament_target_dependencies(test_action_client example_interfaces ros_babel_fish_test_msgs)
   target_link_libraries(test_action_client ${PROJECT_NAME})
+
+  ament_add_gtest(test_action_server test/action_server.cpp)
+  ament_target_dependencies(test_action_server example_interfaces ros_babel_fish_test_msgs)
+  target_link_libraries(test_action_server ${PROJECT_NAME})
 endif ()
 
 # to run: catkin build ros_babel_fish --no-deps -DENABLE_COVERAGE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -v --catkin-make-args ros_babel_fish_coverage
