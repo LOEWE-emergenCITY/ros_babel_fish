@@ -65,32 +65,36 @@ TEST( ActionClientTest, actionClient )
   using Action = ros_babel_fish_test_msgs::action::SimpleTest;
   rclcpp_action::Server<Action>::SharedPtr server = rclcpp_action::create_server<Action>(
       node, "ros_babel_fish_client_test_server",
-      []( const rclcpp_action::GoalUUID &, const std::shared_ptr<const Action::Goal> & ) {
+      []( const rclcpp_action::GoalUUID &, const std::shared_ptr<const Action::Goal> &goal ) {
+        if ( goal->target == 13 ) // 13 is rejected
+          return rclcpp_action::GoalResponse::REJECT;
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
       },
-      []( const std::shared_ptr<rclcpp_action::ServerGoalHandle<Action>> & ) {
+      []( const std::shared_ptr<rclcpp_action::ServerGoalHandle<Action>> &handle ) {
+        if ( handle->get_goal()->target == 7 ) // 7 can't be canceled
+          return rclcpp_action::CancelResponse::REJECT;
         return rclcpp_action::CancelResponse::ACCEPT;
       },
       []( const std::shared_ptr<rclcpp_action::ServerGoalHandle<Action>> &handle ) {
         std::thread t( [handle]() {
           auto result = std::make_shared<Action::Result>();
-          for ( int i = 0; i < handle->get_goal()->goal; ++i ) {
-            if ( i >= 10 && i >= handle->get_goal()->goal / 2 ) {
-              result->result = i;
+          for ( int i = 0; i < handle->get_goal()->target; ++i ) {
+            if ( i >= 10 && i >= handle->get_goal()->target / 2 ) {
+              result->final_value = i;
               handle->abort( result );
               return;
             }
             std::this_thread::sleep_for( 50ms );
             auto feedback = std::make_shared<Action::Feedback>();
-            feedback->feedback = i;
+            feedback->current_value = i;
             handle->publish_feedback( feedback );
             if ( handle->is_canceling() ) {
-              result->result = i;
+              result->final_value = i;
               handle->canceled( result );
               return;
             }
           }
-          result->result = handle->get_goal()->goal;
+          result->final_value = handle->get_goal()->target;
           handle->succeed( result );
         } );
         t.detach();
@@ -104,36 +108,38 @@ TEST( ActionClientTest, actionClient )
 
   // This goal should succeed
   auto goal = client->create_goal();
-  goal["goal"] = 2;
+  goal["target"] = 2;
   auto gh_future = client->async_send_goal( goal );
   ASSERT_EQ( gh_future.wait_for( 30s ), std::future_status::ready );
   auto goal_handle = gh_future.get();
+  ASSERT_NE( goal_handle, nullptr );
   ASSERT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_ACCEPTED );
   auto result = client->async_get_result( goal_handle );
   ASSERT_EQ( result.wait_for( 3s ), std::future_status::ready );
   ASSERT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_SUCCEEDED );
   auto result_msg = result.get();
-  EXPECT_EQ( ( *result_msg.result )["result"].value<int32_t>(), 2 );
+  EXPECT_EQ( ( *result_msg.result )["final_value"].value<int32_t>(), 2 );
 
   // This goal should abort after 10
   goal = client->create_goal();
-  goal["goal"] = 20;
+  goal["target"] = 20;
   std::vector<int> feedback_values;
   gh_future = client->async_send_goal(
       goal, { {},
               [&feedback_values]( const BabelFishActionClient::GoalHandle::SharedPtr &,
                                   const CompoundMessage::ConstSharedPtr &feedback ) {
-                feedback_values.push_back( ( *feedback )["feedback"].value<int32_t>() );
+                feedback_values.push_back( ( *feedback )["current_value"].value<int32_t>() );
               },
               {} } );
   ASSERT_EQ( gh_future.wait_for( 3s ), std::future_status::ready );
   goal_handle = gh_future.get();
+  ASSERT_NE( goal_handle, nullptr );
   ASSERT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_ACCEPTED );
   result = client->async_get_result( goal_handle );
   ASSERT_EQ( result.wait_for( 10s ), std::future_status::ready );
   ASSERT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_ABORTED );
   result_msg = result.get();
-  EXPECT_EQ( ( *result_msg.result )["result"].value<int32_t>(), 10 );
+  EXPECT_EQ( ( *result_msg.result )["final_value"].value<int32_t>(), 10 );
 
   ASSERT_EQ( feedback_values.size(), 10U );
   for ( int i = 0; i < 10; ++i ) {
@@ -143,19 +149,49 @@ TEST( ActionClientTest, actionClient )
 
   // This goal should be preempted
   goal = client->create_goal();
-  goal["goal"] = 200;
+  goal["target"] = 200;
   gh_future = client->async_send_goal( goal );
   ASSERT_EQ( gh_future.wait_for( 3s ), std::future_status::ready );
   goal_handle = gh_future.get();
+  ASSERT_NE( goal_handle, nullptr );
   std::this_thread::sleep_for( 200ms );
   auto cancel_response_future = client->async_cancel_goal( goal_handle );
   ASSERT_EQ( cancel_response_future.wait_for( 1s ), std::future_status::ready )
       << "ActionServer did not cancel in 1 second!";
+  auto cancel_response = cancel_response_future.get();
+  ASSERT_EQ( cancel_response["return_code"].value<int8_t>(),
+             action_msgs::srv::CancelGoal::Response::ERROR_NONE );
   result = client->async_get_result( goal_handle );
   ASSERT_EQ( result.wait_for( 10s ), std::future_status::ready );
   EXPECT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_CANCELED );
   result_msg = result.get();
-  EXPECT_LT( ( *result_msg.result )["result"].value<int32_t>(), 200 );
+  EXPECT_LT( ( *result_msg.result )["final_value"].value<int32_t>(), 200 );
+
+  // 13 should be rejected
+  goal = client->create_goal();
+  goal["target"] = 13;
+  gh_future = client->async_send_goal( goal );
+  ASSERT_EQ( gh_future.wait_for( 3s ), std::future_status::ready );
+  goal_handle = gh_future.get();
+  ASSERT_EQ( goal_handle, nullptr );
+
+  // 7 can't be canceled
+  goal = client->create_goal();
+  goal["target"] = 7;
+  gh_future = client->async_send_goal( goal );
+  ASSERT_EQ( gh_future.wait_for( 3s ), std::future_status::ready );
+  goal_handle = gh_future.get();
+  ASSERT_NE( goal_handle, nullptr );
+  ASSERT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_ACCEPTED );
+  std::this_thread::sleep_for( 50ms );
+  cancel_response_future = client->async_cancel_goal( goal_handle );
+  ASSERT_EQ( cancel_response_future.wait_for( 1s ), std::future_status::ready )
+      << "ActionServer did not cancel in 1 second!";
+  cancel_response = cancel_response_future.get();
+  ASSERT_EQ( cancel_response["return_code"].value<int8_t>(),
+             action_msgs::srv::CancelGoal::Response::ERROR_REJECTED );
+  result = client->async_get_result( goal_handle );
+  ASSERT_EQ( result.wait_for( 10s ), std::future_status::ready );
 }
 
 int main( int argc, char **argv )
