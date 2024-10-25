@@ -143,7 +143,7 @@ TEST( ActionClientTest, actionClient )
 
   ASSERT_EQ( feedback_values.size(), 10U );
   for ( int i = 0; i < 10; ++i ) {
-    if ( feedback_values[i] != i )
+    if ( feedback_values[i] != i ) // cppcheck-suppress containerOutOfBounds
       FAIL() << "Feedback at " << i << " should be " << i << "!";
   }
 
