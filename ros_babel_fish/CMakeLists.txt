@@ -101,9 +101,6 @@ target_include_directories(action_client PRIVATE
 ## Install ##
 #############
 
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(rclcpp rclcpp_action rosidl_runtime_cpp rosidl_typesupport_cpp rosidl_typesupport_introspection_cpp)
-
 ## Mark libraries for installation
 install(
   TARGETS ${PROJECT_NAME}
@@ -120,6 +117,14 @@ install(
 
 install(DIRECTORY include/ DESTINATION include/)
 
+
+# Export old style CMake variables
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
+
+# Export modern CMake targets
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(rclcpp rclcpp_action rosidl_runtime_cpp rosidl_typesupport_cpp rosidl_typesupport_introspection_cpp)
 
 #############
 ## Testing ##
