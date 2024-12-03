@@ -55,8 +55,9 @@ void callback( const ros_babel_fish::CompoundMessage::SharedPtr &msg )
   const CompoundMessage &compound = *msg;
   std::cout << "Position: " << compound["position"]["x"].value<double>() << ", " << compound["position"]["y"].value<double>() << ", "
             << compound["position"]["z"].value<double>() << std::endl;
-  std::cout << "Orientation: " << compound["orientation"]["w"].value<double>() << ", " << compound["orientation"]["x"].value<double>() << ", "
-            << compound["orientation"]["y"].value<double>() << ", " << compound["orientation"]["z"].value<double>() << std::endl;
+  // Alternatively, you can use the new get<T> convenience method
+  std::cout << "Orientation: " << compound["orientation"].get<double>("w") << ", " << compound["orientation"].get<double>("x") << ", "
+            << compound["orientation"].get<double>("y") << ", " << compound["orientation"].get<double>("z") << std::endl;
 };
 ```
 
@@ -76,6 +77,8 @@ compound["position"].as<CompoundMessage>()["x"].as<ValueMessage<double>>().setVa
 compound["position"]["y"].as<ValueMessage<double>>().setValue(2.4);
 // or using even more convenience methods
 compound["position"]["z"] = 3.6;
+// UPDATE: now also shorter with explicit type
+compound["position"].set<double>("z", 3.6)
 // Be careful with your types here. Casting to a wrong type will throw an exception!
 // The as<ValueMessage<T>> method is also a bit faster because the convenience method
 // will automatically convert to the right type and perform bound and compatibility checks.
