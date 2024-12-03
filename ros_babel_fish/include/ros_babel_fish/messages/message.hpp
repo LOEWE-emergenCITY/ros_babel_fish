@@ -79,7 +79,7 @@ public:
   template<typename T>
   const T &as() const
   {
-    const T *result = dynamic_cast<const T *>( this );
+    auto result = dynamic_cast<const T *>( this );
     if ( result == nullptr )
       throw BabelFishException( "Tried to cast message to incompatible type!" );
     return *result;
@@ -151,6 +151,33 @@ public:
   Message &operator=( const rclcpp::Duration &value );
 
   Message &operator=( const Message &other );
+
+  /*!
+   * Convenience method to set the value of a value member with the given key.
+   *
+   * @throws BabelFishException If child access by key is not supported.
+   * @throws BabelFishException If bool is assigned to non-boolean ValueMessage or non-boolean value to bool ValueMessage
+   * @throws BabelFishException If ros::Time / ros::Duration value is set to a different type of ValueMessage.
+   */
+  template<typename T>
+  void set( const std::string &key, const T &value )
+  {
+    operator[]( key ) = value;
+  }
+
+  /*!
+   * Convenience method to retrieve the value of a value member with the given key.
+   *
+   * @throws BabelFishException If child access by key is not supported.
+   * @throws BabelFishException If the message is not a ValueMessage
+   * @throws BabelFishException If the type of the ValueMessage can not be casted to a different
+   *     type which is the case for bool, std::string, ros::Time and ros::Duration
+   */
+  template<typename T>
+  T get( const std::string &key ) const
+  {
+    return operator[]( key ).value<T>();
+  }
 
   /**@}*/
 
