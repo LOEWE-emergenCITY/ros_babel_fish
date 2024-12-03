@@ -33,7 +33,7 @@ TEST( ServiceClientTest, tests )
   ( *req )["a"] = 512;
   ( *req )["b"] = 314;
   BabelFishServiceClient::SharedPtr client = fish.create_service_client(
-      *node, "/test_service_client/two_ints", "example_interfaces/srv/AddTwoInts" );
+      *node, "/test_service_client/two_ints_client", "example_interfaces/srv/AddTwoInts" );
   ASSERT_TRUE( client->wait_for_service( 5s ) );
   std::shared_future<CompoundMessage::SharedPtr> response_future = client->async_send_request( req );
   ASSERT_EQ( response_future.wait_for( 5s ), std::future_status::ready );
@@ -45,13 +45,24 @@ TEST( ServiceClientTest, tests )
 
 TEST( ServiceTest, server )
 {
-  //  ros::service::waitForService( "/test_service_server/subscribers" );
-  //  rosapi::Subscribers subscribers;
-  //  subscribers.request_template.topic = "First test";
-  //  EXPECT_TRUE( ros::service::call( "/test_service_server/subscribers", subscribers ));
-  //  ASSERT_EQ( subscribers.response.subscribers.size(), 2UL );
-  //  EXPECT_EQ( subscribers.response.subscribers[0], "First test" );
-  //  EXPECT_EQ( subscribers.response.subscribers[1], "The answer to everything is:" );
+  BabelFish fish;
+  auto server = fish.create_service(
+      *node, "/test_service_server/two_ints_server", "example_interfaces/srv/AddTwoInts",
+      []( CompoundMessage::SharedPtr req, CompoundMessage::SharedPtr resp ) {
+        resp->set( "sum", req->get<int64_t>( "a" ) + req->get<int64_t>( "b" ) + 1337 );
+        return true;
+      } );
+  auto req2 = std::make_shared<example_interfaces::srv::AddTwoInts::Request>();
+  req2->a = 512;
+  req2->b = 314;
+  auto client = node->create_client<example_interfaces::srv::AddTwoInts>(
+      "test_service_server/two_ints_server" );
+  ASSERT_TRUE( client->wait_for_service( 5s ) );
+  auto response = client->async_send_request( req2 );
+  ASSERT_TRUE( response.wait_for( 5s ) == std::future_status::ready );
+  auto result = response.get();
+  ASSERT_NE( result, nullptr );
+  EXPECT_EQ( result->sum, 512 + 314 + 1337 );
 }
 
 int main( int argc, char **argv )
@@ -61,7 +72,7 @@ int main( int argc, char **argv )
   node = std::make_shared<rclcpp::Node>( "service_client_test" );
   std::thread spinner( []() { rclcpp::spin( node ); } );
   auto service_two_ints = node->create_service<example_interfaces::srv::AddTwoInts>(
-      "/test_service_client/two_ints", &twoIntServiceCallback );
+      "/test_service_client/two_ints_client", &twoIntServiceCallback );
   int result = RUN_ALL_TESTS();
   rclcpp::shutdown();
   spinner.join();
