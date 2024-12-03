@@ -6,7 +6,7 @@
 #include <ros_babel_fish/babel_fish.hpp>
 
 #include <action_msgs/msg/goal_status_array.h>
-#include <action_tutorials_interfaces/action/fibonacci.hpp>
+#include <example_interfaces/action/fibonacci.hpp>
 #include <ros_babel_fish_test_msgs/action/simple_test.hpp>
 
 #include <rclcpp/rclcpp.hpp>
@@ -49,7 +49,7 @@ TEST( ActionClientTest, actionLookup )
   EXPECT_NE( ts, nullptr );
   EXPECT_TRUE( Equal( type_support->type_support_handle, *ts ) );
 
-  type_support = fish.get_action_type_support( "action_tutorials_interfaces/action/Fibonacci" );
+  type_support = fish.get_action_type_support( "example_interfaces/action/Fibonacci" );
   ASSERT_NE( type_support, nullptr );
 
   const auto *ts_map =

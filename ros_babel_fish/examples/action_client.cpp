@@ -14,8 +14,8 @@ int main( int argc, char **argv )
   auto node = rclcpp::Node::make_shared( "action_client" );
   std::thread spin_thread( [node]() { rclcpp::spin( node ); } );
   BabelFish fish;
-  auto client = fish.create_action_client( *node, "fibonacci",
-                                           "action_tutorials_interfaces/action/Fibonacci" );
+  auto client =
+      fish.create_action_client( *node, "fibonacci", "example_interfaces/action/Fibonacci" );
 
   RCLCPP_INFO( node->get_logger(), "Waiting for server to come up." );
   if ( !client->wait_for_action_server( 10s ) ) {
@@ -33,7 +33,7 @@ int main( int argc, char **argv )
               nullptr, // We handle the goal response using the future
               []( BabelFishActionClient::GoalHandle::SharedPtr,
                   const CompoundMessage::ConstSharedPtr msg ) -> void {
-                const auto &sequence = ( *msg )["partial_sequence"].as<ArrayMessage<int32_t>>();
+                const auto &sequence = ( *msg )["sequence"].as<ArrayMessage<int32_t>>();
                 std::cout << "Feedback is an array of length:" << sequence.size() << std::endl;
                 for ( size_t i = 0; i < sequence.size(); ++i ) {
                   std::cout << sequence[i];
