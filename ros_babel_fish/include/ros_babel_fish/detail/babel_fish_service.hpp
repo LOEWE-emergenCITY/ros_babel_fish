@@ -19,7 +19,8 @@ struct BabelFishService {
 };
 } // namespace impl
 
-class BabelFishService : public rclcpp::ServiceBase, std::enable_shared_from_this<BabelFishService>
+class BabelFishService : public rclcpp::ServiceBase,
+                         public std::enable_shared_from_this<BabelFishService>
 {
 public:
   RCLCPP_SMART_PTR_DEFINITIONS( BabelFishService )

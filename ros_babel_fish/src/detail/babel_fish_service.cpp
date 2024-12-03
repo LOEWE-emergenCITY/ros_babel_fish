@@ -5,7 +5,6 @@
 #include "ros_babel_fish/idl/serialization.hpp"
 
 #include <rosidl_typesupport_introspection_cpp/service_introspection.hpp>
-#include <utility>
 
 namespace ros_babel_fish
 {
@@ -76,7 +75,7 @@ std::shared_ptr<void> BabelFishService::create_request()
 
 std::shared_ptr<rmw_request_id_t> BabelFishService::create_request_header()
 {
-  return std::shared_ptr<rmw_request_id_t>();
+  return std::make_shared<rmw_request_id_t>();
 }
 
 void BabelFishService::handle_request( std::shared_ptr<rmw_request_id_t> request_header,
