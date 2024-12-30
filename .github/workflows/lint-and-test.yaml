@@ -49,7 +49,7 @@ jobs:
           path: src
       - name: rosdep
         run: |
-          rosdep update
+          rosdep update --rosdistro ${{ matrix.setup.rosdistro }}
           rosdep install -y --from-paths src --ignore-src --rosdistro ${{ matrix.setup.rosdistro }}
       - name: build
         run: |
