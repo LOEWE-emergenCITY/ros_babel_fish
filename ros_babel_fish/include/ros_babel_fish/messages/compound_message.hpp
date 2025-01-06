@@ -82,6 +82,41 @@ public:
 
   std::shared_ptr<void> type_erased_message();
 
+  /*!
+   * Cast this compound message to a message type.
+   * Example:
+   * \code{.cpp}
+   * using geometry_msgs::msg::Point;
+   * Point point = compound.message&lt;Point&gt;();
+   * \endcode
+   *
+   * @tparam T The type of the message to cast to.
+   * @throws BabelFishException If the message is not of the target type.
+   * @return The message casted to the target type.
+   */
+  template<typename T>
+  std::shared_ptr<T> message()
+  {
+    if ( rosidl_generator_traits::name<T>() != name() ) {
+      throw BabelFishException( "Tried to cast compound message of type " + name() +
+                                " to incompatible message type " +
+                                rosidl_generator_traits::name<T>() + "!" );
+    }
+    return std::static_pointer_cast<T>( type_erased_message() );
+  }
+
+  //! @copydoc message()
+  template<typename T>
+  std::shared_ptr<const T> message() const
+  {
+    if ( rosidl_generator_traits::name<T>() != name() ) {
+      throw BabelFishException( "Tried to cast compound message of type " + name() +
+                                " to incompatible message type " +
+                                rosidl_generator_traits::name<T>() + "!" );
+    }
+    return std::static_pointer_cast<const T>( type_erased_message() );
+  }
+
   //! Creates a copy of this compound message
   CompoundMessage clone() const;
 
