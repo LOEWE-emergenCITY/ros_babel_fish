@@ -46,11 +46,7 @@ public:
    * type which is the case for bool, std::string, ros::Time and ros::Duration
    */
   template<typename T>
-  T value() const
-  {
-    // Fallback to the default implementation which throws an exception if no specialization is available
-    static_assert( false && "Invalid type for value!" );
-  }
+  T value() const; // Only specializations available
 
   /*!
    * Convenience method that casts the message to the given type.
