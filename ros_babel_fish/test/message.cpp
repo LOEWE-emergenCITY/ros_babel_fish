@@ -285,6 +285,11 @@ TEST( MessageTest, compoundMessage )
   }
   ASSERT_TRUE( shared_pointer_alive );
 
+  // Obtain a known subtype
+  EXPECT_THROW( auto pose = msg->message<geometry_msgs::msg::Pose>(), BabelFishException );
+  EXPECT_NO_THROW( auto pose =
+                       ( *msg )["pose"].as<CompoundMessage>().message<geometry_msgs::msg::Pose>() );
+
   {
     auto pose = ( *msg )["pose"].as<CompoundMessage>();
     msg.reset();

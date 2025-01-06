@@ -17,6 +17,7 @@ endif ()
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rcpputils REQUIRED)
@@ -69,6 +70,7 @@ target_include_directories(any_subscriber PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+ament_target_dependencies(any_subscriber geometry_msgs)
 
 add_executable(troll_node examples/troll_node.cpp)
 target_link_libraries(troll_node ${PROJECT_NAME})

@@ -2,11 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <chrono>
+#include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/point32.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <ros_babel_fish/babel_fish.hpp>
 #include <ros_babel_fish/macros.hpp>
-#include <thread>
-#include <utility>
 
 /*!
  * The following example demonstrates how to subscribe to a topic of any type,
@@ -28,9 +28,12 @@ public:
   void init()
   {
     fish = ros_babel_fish::BabelFish::make_shared();
+    RCLCPP_INFO( this->get_logger(), "Started. Waiting for topic '%s' to become available.",
+                 topic_.c_str() );
     subscription_ = fish->create_subscription(
         *this, topic_, 10,
         [this]( ros_babel_fish::CompoundMessage::SharedPtr msg ) { topic_callback( msg ); } );
+    RCLCPP_INFO( this->get_logger(), "Subscribed to topic '%s'", topic_.c_str() );
   }
 
 private:
@@ -43,7 +46,7 @@ private:
     try {
       std::cout << "Type: " << msg->name() << std::endl;
       dumpMessageContent( *msg );
-      std::cout << std::endl << "---" << std::endl;
+      std::cout << "---" << std::endl;
     } catch ( ros_babel_fish::BabelFishException &ex ) {
       RCLCPP_ERROR( this->get_logger(), "Got a BabelFishException during translation: %s", ex.what() );
     }
@@ -70,6 +73,24 @@ int main( int argc, char *argv[] )
 }
 
 // Here's where the dumping happens
+void printPoint( const ros_babel_fish::CompoundMessage &point )
+{
+  // This method demonstrates how to get a known message type out of a CompoundMessage
+  // Note that this is only possible if the CompoundMessage actually contains a message of the given type
+  // Otherwise, a BabelFishException will be thrown
+  // Also, this message is a reference to the original message, so any modifications to either will affect the other
+  auto point_msg = point.message<geometry_msgs::msg::Point>();
+  std::cout << "Point { x: " << point_msg->x << ", y: " << point_msg->y << ", z: " << point_msg->z
+            << " }" << std::endl;
+}
+
+void printPoint32( const ros_babel_fish::CompoundMessage &point )
+{
+  // Again for Point32 so it can be tested with geometry_msgs/msg/Polygon
+  auto point_msg = point.message<geometry_msgs::msg::Point32>();
+  std::cout << "Point { x: " << point_msg->x << ", y: " << point_msg->y << ", z: " << point_msg->z
+            << " }" << std::endl;
+}
 
 template<typename T>
 void printToStdOut( const T &val )
@@ -134,20 +155,27 @@ void dumpMessageContent( const ros_babel_fish::Message &message, const std::stri
     // We can either just dump the message or demonstrate the time conversion
     if ( compound.isTime() ) {
       rclcpp::Time time = compound.value<rclcpp::Time>();
-      std::cout << "Time { seconds: " << time.seconds() << " }";
+      std::cout << "Time { seconds: " << time.seconds() << " }" << std::endl;
       return;
     }
     if ( compound.isDuration() ) {
       auto duration = compound.value<rclcpp::Duration>();
-      std::cout << "Duration { seconds: " << duration.seconds() << " }";
+      std::cout << "Duration { seconds: " << duration.seconds() << " }" << std::endl;
+      return;
+    }
+    if ( compound.name() == "geometry_msgs/msg/Point" ) {
+      printPoint( compound );
+      return;
+    }
+    if ( compound.name() == "geometry_msgs/msg/Point32" ) {
+      printPoint32( compound );
       return;
     }
     std::cout << std::endl;
     for ( size_t i = 0; i < compound.keys().size(); ++i ) {
       std::cout << prefix << compound.keys()[i] << ": ";
       dumpMessageContent( *compound.values()[i], prefix + "  " );
-      if ( i != compound.keys().size() - 1 )
-        std::cout << std::endl;
+      std::cout << std::endl;
     }
   } else if ( message.type() == MessageTypes::Array ) {
     auto &base = message.as<ArrayMessageBase>();

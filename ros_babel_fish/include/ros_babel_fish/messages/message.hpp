@@ -48,10 +48,8 @@ public:
   template<typename T>
   T value() const
   {
-    auto result = std::dynamic_pointer_cast<T>( data_ );
-    if ( !result )
-      throw BabelFishException( "Invalid cast!" );
-    return *result;
+    // Fallback to the default implementation which throws an exception if no specialization is available
+    static_assert( false && "Invalid type for value!" );
   }
 
   /*!
@@ -69,7 +67,7 @@ public:
   template<typename T>
   T &as()
   {
-    T *result = dynamic_cast<T *>( this );
+    auto result = dynamic_cast<T *>( this );
     if ( result == nullptr )
       throw BabelFishException( "Tried to cast message to incompatible type!" );
     return *result;
@@ -80,8 +78,9 @@ public:
   const T &as() const
   {
     auto result = dynamic_cast<const T *>( this );
-    if ( result == nullptr )
+    if ( result == nullptr ) {
       throw BabelFishException( "Tried to cast message to incompatible type!" );
+    }
     return *result;
   }
 
