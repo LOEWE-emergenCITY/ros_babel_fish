@@ -257,6 +257,10 @@ TEST_F( MessageDecodingTest, arrayTests )
       ( *msg )["subarrays_fixed"].as<FixedLengthCompoundArrayMessage>();
   ASSERT_EQ( msg_subarrays_fixed.elementDatatype(), "ros_babel_fish_test_msgs::msg::TestSubArray" );
   ASSERT_EQ( msg_subarrays_fixed.elementName(), "ros_babel_fish_test_msgs/msg/TestSubArray" );
+
+  const auto &msg_uint16s = ( *msg )["uint16s"].as<FixedLengthArrayMessage<uint16_t>>();
+  ASSERT_EQ( msg_uint16s.size(), 32 );
+  ASSERT_EQ( test_array.uint16s[4], msg_uint16s[4] );
 }
 
 int main( int argc, char **argv )
