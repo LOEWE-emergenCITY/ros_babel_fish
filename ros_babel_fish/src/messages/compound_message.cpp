@@ -166,7 +166,7 @@ void initValueMessage( Message::SharedPtr &message, const MessageMemberIntrospec
   message = ValueMessage<T>::template make_shared( member, data );
 }
 
-template<bool FIXED_LENGTH = false, bool BOUNDED = FIXED_LENGTH>
+template<bool FIXED_LENGTH = false, bool BOUNDED = false>
 struct ArrayInit {
   template<typename T>
   static void initArrayMessage( Message::SharedPtr &message, const MessageMemberIntrospection &member,
@@ -198,9 +198,9 @@ void ArrayInit<false, true>::initArrayMessage<ArrayMessageBase>( Message::Shared
 
 template<>
 template<>
-void ArrayInit<true, true>::initArrayMessage<ArrayMessageBase>( Message::SharedPtr &,
-                                                                const MessageMemberIntrospection &,
-                                                                const std::shared_ptr<void> & )
+void ArrayInit<true, false>::initArrayMessage<ArrayMessageBase>( Message::SharedPtr &,
+                                                                 const MessageMemberIntrospection &,
+                                                                 const std::shared_ptr<void> & )
 {
   throw std::runtime_error(
       "Arrays of arrays are not supported by ROS2 (yet)! Please open an issue if this changed!" );
@@ -226,9 +226,9 @@ void ArrayInit<false, true>::initArrayMessage<CompoundMessage>( Message::SharedP
 
 template<>
 template<>
-void ArrayInit<true, true>::initArrayMessage<CompoundMessage>( Message::SharedPtr &message,
-                                                               const MessageMemberIntrospection &member,
-                                                               const std::shared_ptr<void> &data )
+void ArrayInit<true, false>::initArrayMessage<CompoundMessage>( Message::SharedPtr &message,
+                                                                const MessageMemberIntrospection &member,
+                                                                const std::shared_ptr<void> &data )
 {
   message = FixedLengthCompoundArrayMessage::make_shared( member, data );
 }
@@ -250,7 +250,7 @@ void initValue( Message::SharedPtr &message, const MessageMemberIntrospection &m
       RBF2_TEMPLATE_CALL( NormalArrayInit::initArrayMessage, member->type_id_, message, member,
                           sub_data );
     } else {
-      using FixedLengthArrayInit = ArrayInit<true, true>;
+      using FixedLengthArrayInit = ArrayInit<true, false>;
       RBF2_TEMPLATE_CALL( FixedLengthArrayInit::initArrayMessage, member->type_id_, message, member,
                           sub_data );
     }
