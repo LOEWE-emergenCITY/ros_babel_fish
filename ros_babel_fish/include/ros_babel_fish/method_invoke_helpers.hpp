@@ -537,8 +537,8 @@ template<typename Callable, typename... Args>
 auto invoke_for_array_message( ArrayMessageBase &msg, Callable &&f, Args &&...args )
 {
   if ( msg.isFixedSize() )
-    return impl::call_for_array_message<true, true>( msg, std::forward<Callable>( f ),
-                                                     std::forward<Args>( args )... );
+    return impl::call_for_array_message<false, true>( msg, std::forward<Callable>( f ),
+                                                      std::forward<Args>( args )... );
   if ( msg.isBounded() )
     return impl::call_for_array_message<true, false>( msg, std::forward<Callable>( f ),
                                                       std::forward<Args>( args )... );
@@ -550,8 +550,8 @@ template<typename Callable, typename... Args>
 auto invoke_for_array_message( const ArrayMessageBase &msg, Callable &&f, Args &&...args )
 {
   if ( msg.isFixedSize() )
-    return impl::call_for_array_message<true, true>( msg, std::forward<Callable>( f ),
-                                                     std::forward<Args>( args )... );
+    return impl::call_for_array_message<false, true>( msg, std::forward<Callable>( f ),
+                                                      std::forward<Args>( args )... );
   if ( msg.isBounded() )
     return impl::call_for_array_message<true, false>( msg, std::forward<Callable>( f ),
                                                       std::forward<Args>( args )... );
