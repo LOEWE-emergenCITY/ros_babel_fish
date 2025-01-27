@@ -74,8 +74,8 @@ class ArrayMessage_ final : public ArrayMessageBase
   using ReturnType = typename message_type_traits::array_type<T, FIXED_LENGTH>::ReturnType;
   using ConstReturnType = typename message_type_traits::array_type<T, FIXED_LENGTH>::ConstReturnType;
   using ArgumentType = typename message_type_traits::array_type<T, FIXED_LENGTH>::ArgumentType;
-  static_assert( ( FIXED_LENGTH && BOUNDED ) || !FIXED_LENGTH,
-                 "Fixed length can only be true if bounded is also true!" );
+  static_assert( ( FIXED_LENGTH != BOUNDED ) || ( !FIXED_LENGTH && !BOUNDED ),
+                 "Fixed length can only be true if bounded is not true and vice versa!" );
 
 public:
   RCLCPP_SMART_PTR_DEFINITIONS( ArrayMessage_<T, BOUNDED, FIXED_LENGTH> )
@@ -152,12 +152,10 @@ public:
 
   void push_back( ArgumentType value )
   {
-    if ( BOUNDED ) {
-      if ( FIXED_LENGTH )
-        throw std::length_error( "Can not push back on fixed length array!" );
-      // This means it is upper bound, otherwise the method would not be enabled / available
-      if ( member_->array_size_ <= member_->size_function( data_.get() ) )
-        throw std::length_error( "Exceeded upper bound!" );
+    if ( FIXED_LENGTH )
+      throw std::length_error( "Can not push back on fixed length array!" );
+    if ( BOUNDED && member_->array_size_ <= member_->size_function( data_.get() ) ) {
+      throw std::length_error( "Exceeded upper bound!" );
     }
     reinterpret_cast<std::vector<T> *>( data_.get() )->push_back( value );
   }
@@ -176,9 +174,9 @@ public:
 
   void resize( size_t length )
   {
+    if ( FIXED_LENGTH )
+      throw std::length_error( "Can not resize fixed length array!" );
     if ( BOUNDED ) {
-      if ( FIXED_LENGTH )
-        throw std::length_error( "Can not resize fixed length array!" );
       // This means it is upper bound, otherwise the method would not be enabled / available
       if ( member_->array_size_ < length )
         throw std::length_error( "Exceeded upper bound!" );
@@ -222,11 +220,11 @@ protected:
   void _assign( const ArrayMessageBase &other ) override
   {
     if ( other.isBounded() ) {
-      if ( other.isFixedSize() ) {
-        _assignImpl<true, true>( other );
-        return;
-      }
       _assignImpl<true, false>( other );
+      return;
+    }
+    if ( other.isFixedSize() ) {
+      _assignImpl<false, true>( other );
       return;
     }
     _assignImpl<false, false>( other );
@@ -249,10 +247,10 @@ protected:
   {
     const auto &other = o.as<ArrayMessageBase>();
     if ( other.isBounded() ) {
-      if ( other.isFixedSize() ) {
-        return _isMessageEqualImpl<true, true>( other );
-      }
       return _isMessageEqualImpl<true, false>( other );
+    }
+    if ( other.isFixedSize() ) {
+      return _isMessageEqualImpl<false, true>( other );
     }
     return _isMessageEqualImpl<false, false>( other );
   }
@@ -275,7 +273,7 @@ template<typename T>
 using ArrayMessage = ArrayMessage_<T, false, false>;
 
 template<typename T>
-using FixedLengthArrayMessage = ArrayMessage_<T, true, true>;
+using FixedLengthArrayMessage = ArrayMessage_<T, false, true>;
 
 template<typename T>
 using BoundedArrayMessage = ArrayMessage_<T, true, false>;
@@ -284,8 +282,8 @@ using BoundedArrayMessage = ArrayMessage_<T, true, false>;
 template<bool BOUNDED, bool FIXED_LENGTH>
 class CompoundArrayMessage_ final : public ArrayMessageBase
 {
-  static_assert( ( FIXED_LENGTH && BOUNDED ) || !FIXED_LENGTH,
-                 "Fixed length can only be true if bounded is also true!" );
+  static_assert( ( FIXED_LENGTH != BOUNDED ) || ( !FIXED_LENGTH && !BOUNDED ),
+                 "Fixed length can only be true if bounded is not true and vice versa!" );
 
 public:
   RCLCPP_SMART_PTR_DEFINITIONS( CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> )
@@ -346,11 +344,10 @@ public:
 
   void push_back( const CompoundMessage &value )
   {
-    if ( BOUNDED ) {
-      if ( FIXED_LENGTH )
-        throw std::length_error( "Can not push back on fixed length array!" );
-      if ( member_->array_size_ <= member_->size_function( data_.get() ) )
-        throw std::length_error( "Exceeded upper bound!" );
+    if ( FIXED_LENGTH )
+      throw std::length_error( "Can not push back on fixed length array!" );
+    if ( BOUNDED && member_->array_size_ <= member_->size_function( data_.get() ) ) {
+      throw std::length_error( "Exceeded upper bound!" );
     }
     const size_t index = size();
     resize( index + 1 );
@@ -381,11 +378,10 @@ public:
   {
     if ( length == values_.size() )
       return;
-    if ( BOUNDED ) {
-      if ( FIXED_LENGTH )
-        throw std::length_error( "Can not resize fixed length array!" );
-      if ( member_->array_size_ < length )
-        throw std::length_error( "Exceeded upper bound!" );
+    if ( FIXED_LENGTH )
+      throw std::length_error( "Can not resize fixed length array!" );
+    if ( BOUNDED && member_->array_size_ < length ) {
+      throw std::length_error( "Exceeded upper bound!" );
     }
     member_->resize_function( data_.get(), length );
     values_.resize( length );
@@ -396,7 +392,7 @@ public:
       void *p = member_->get_function( data_.get(), i );
       if ( p == values_[i]->data_.get() )
         return; // Content was not moved
-      std::shared_ptr<void> data( p, [parent = data_]( void * ) { (void)parent; } );
+      std::shared_ptr<void> data( p, [parent = data_]( const void * ) { (void)parent; } );
       values_[i]->move( data );
     }
   }
@@ -489,11 +485,11 @@ private:
   void _assign( const ArrayMessageBase &other ) override
   {
     if ( other.isBounded() ) {
-      if ( other.isFixedSize() ) {
-        _assignImpl<true, true>( other );
-        return;
-      }
       _assignImpl<true, false>( other );
+      return;
+    }
+    if ( other.isFixedSize() ) {
+      _assignImpl<false, true>( other );
       return;
     }
     _assignImpl<false, false>( other );
@@ -516,10 +512,10 @@ private:
   {
     const auto &other = o.as<ArrayMessageBase>();
     if ( other.isBounded() ) {
-      if ( other.isFixedSize() ) {
-        return _isMessageEqualImpl<true, true>( other );
-      }
       return _isMessageEqualImpl<true, false>( other );
+    }
+    if ( other.isFixedSize() ) {
+      return _isMessageEqualImpl<false, true>( other );
     }
     return _isMessageEqualImpl<false, false>( other );
   }
@@ -542,7 +538,7 @@ private:
 
 using CompoundArrayMessage = CompoundArrayMessage_<false, false>;
 
-using FixedLengthCompoundArrayMessage = CompoundArrayMessage_<true, true>;
+using FixedLengthCompoundArrayMessage = CompoundArrayMessage_<false, true>;
 
 using BoundedCompoundArrayMessage = CompoundArrayMessage_<true, false>;
 } // namespace ros_babel_fish

@@ -388,7 +388,7 @@
                        std::remove_const<std::remove_reference<decltype( ARRAY )>::type>::type>::value, \
         "Second argument to macro needs to be of type ArrayMessageBase!" );                             \
     if ( ( ARRAY ).isFixedSize() ) {                                                                    \
-      _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ( ARRAY ), true, true, __VA_ARGS__ )                   \
+      _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ( ARRAY ), false, true, __VA_ARGS__ )                  \
     } else if ( ( ARRAY ).isBounded() ) {                                                               \
       _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ( ARRAY ), true, false, __VA_ARGS__ )                  \
     } else {                                                                                            \
