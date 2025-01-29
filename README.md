@@ -1,3 +1,7 @@
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=LOEWE-emergenCITY_ros_babel_fish&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=LOEWE-emergenCITY_ros_babel_fish)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=LOEWE-emergenCITY_ros_babel_fish&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=LOEWE-emergenCITY_ros_babel_fish)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=LOEWE-emergenCITY_ros_babel_fish&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=LOEWE-emergenCITY_ros_babel_fish)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=LOEWE-emergenCITY_ros_babel_fish&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=LOEWE-emergenCITY_ros_babel_fish)
 # ROS Babel Fish
 
 This library enables ROS2 nodes written in C++ to communicate using message types that are unknown at compile time.
