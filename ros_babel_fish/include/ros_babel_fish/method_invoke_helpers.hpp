@@ -7,6 +7,7 @@
 
 #include "ros_babel_fish/messages/array_message.hpp"
 #include "ros_babel_fish/messages/compound_message.hpp"
+#include "ros_babel_fish/messages/value_message.hpp"
 
 #include <functional>
 
@@ -149,7 +150,6 @@ auto invoke_for_message( Message &msg, Callable &&f, Args &&...args )
     return RBF2_INVOKE_FN( f, msg.as<CompoundMessage>(), std::forward<Args>( args )... );
   case MessageTypes::Array:
     return RBF2_INVOKE_FN( f, msg.as<ArrayMessageBase>(), std::forward<Args>( args )... );
-  case MessageTypes::None:
   default:
     throw BabelFishException( "invoke_for_message called with invalid message!" );
   }
@@ -216,7 +216,6 @@ auto invoke_for_message( const Message &msg, Callable &&f, Args &&...args )
     return RBF2_INVOKE_FN( f, msg.as<CompoundMessage>(), std::forward<Args>( args )... );
   case MessageTypes::Array:
     return RBF2_INVOKE_FN( f, msg.as<ArrayMessageBase>(), std::forward<Args>( args )... );
-  case MessageTypes::None:
   default:
     throw BabelFishException( "invoke_for_message called with invalid message!" );
   }
@@ -283,7 +282,6 @@ auto invoke_for_value_message( Message &msg, Callable &&f, Args &&...args )
   case MessageTypes::Array:
     throw BabelFishException(
         "invoke_for_value_message called with message that is not a ValueMessage!" );
-  case MessageTypes::None:
   default:
     throw BabelFishException( "invoke_for_value_message called with invalid message!" );
   }
@@ -350,7 +348,6 @@ auto invoke_for_value_message( const Message &msg, Callable &&f, Args &&...args 
   case MessageTypes::Array:
     throw BabelFishException(
         "invoke_for_value_message called with message that is not a ValueMessage!" );
-  case MessageTypes::None:
   default:
     throw BabelFishException( "invoke_for_value_message called with invalid message!" );
   }
@@ -358,7 +355,7 @@ auto invoke_for_value_message( const Message &msg, Callable &&f, Args &&...args 
 
 namespace impl
 {
-template<bool BOUNDED, bool FIXED_LENGTH, typename Callable, typename... Args>
+template<ArraySize SIZE, typename Callable, typename... Args>
 auto call_for_array_message( ArrayMessageBase &msg, Callable &&f, Args &&...args )
 {
   using namespace ::ros_babel_fish::message_type_traits;
@@ -366,86 +363,67 @@ auto call_for_array_message( ArrayMessageBase &msg, Callable &&f, Args &&...args
   using ::ros_babel_fish::CompoundArrayMessage_;
   switch ( msg.elementType() ) {
   case MessageTypes::Float:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Float>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Double:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Double>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::LongDouble:
-    return RBF2_INVOKE_FN(
-        f,
-        msg.as<ArrayMessage_<value_type<MessageTypes::LongDouble>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Char:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Char>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::WChar:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::WChar>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Bool:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Bool>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Octet:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Octet>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::UInt8:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt8>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Int8:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Int8>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::UInt16:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt16>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Int16:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Int16>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::UInt32:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt32>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Int32:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Int32>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::UInt64:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt64>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Int64:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Int64>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::String:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::String>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::WString:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::WString>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Compound:
-    return RBF2_INVOKE_FN( f, msg.as<CompoundArrayMessage_<BOUNDED, FIXED_LENGTH>>(),
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Float>::value, SIZE>>(),
                            std::forward<Args>( args )... );
+  case MessageTypes::Double:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Double>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::LongDouble:
+    return RBF2_INVOKE_FN( f,
+                           msg.as<ArrayMessage_<value_type<MessageTypes::LongDouble>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Char:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Char>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::WChar:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::WChar>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Bool:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Bool>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Octet:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Octet>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::UInt8:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt8>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Int8:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Int8>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::UInt16:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt16>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Int16:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Int16>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::UInt32:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt32>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Int32:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Int32>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::UInt64:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt64>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Int64:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Int64>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::String:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::String>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::WString:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::WString>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Compound:
+    return RBF2_INVOKE_FN( f, msg.as<CompoundArrayMessage_<SIZE>>(), std::forward<Args>( args )... );
   case MessageTypes::Array:
     throw BabelFishException( "Arrays of arrays are not supported in ROS2!" );
-  case MessageTypes::None:
   default:
     throw BabelFishException( "invoke_for_array_message called with invalid message!" );
   }
 }
 
-template<bool BOUNDED, bool FIXED_LENGTH, typename Callable, typename... Args>
+template<ArraySize SIZE, typename Callable, typename... Args>
 auto call_for_array_message( const ArrayMessageBase &msg, Callable &&f, Args &&...args )
 {
   using namespace ::ros_babel_fish::message_type_traits;
@@ -453,80 +431,61 @@ auto call_for_array_message( const ArrayMessageBase &msg, Callable &&f, Args &&.
   using ::ros_babel_fish::CompoundArrayMessage_;
   switch ( msg.elementType() ) {
   case MessageTypes::Float:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Float>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Double:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Double>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::LongDouble:
-    return RBF2_INVOKE_FN(
-        f,
-        msg.as<ArrayMessage_<value_type<MessageTypes::LongDouble>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Char:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Char>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::WChar:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::WChar>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Bool:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Bool>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Octet:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Octet>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::UInt8:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt8>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Int8:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Int8>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::UInt16:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt16>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Int16:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Int16>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::UInt32:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt32>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Int32:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Int32>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::UInt64:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt64>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Int64:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::Int64>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::String:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::String>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::WString:
-    return RBF2_INVOKE_FN(
-        f, msg.as<ArrayMessage_<value_type<MessageTypes::WString>::value, BOUNDED, FIXED_LENGTH>>(),
-        std::forward<Args>( args )... );
-  case MessageTypes::Compound:
-    return RBF2_INVOKE_FN( f, msg.as<CompoundArrayMessage_<BOUNDED, FIXED_LENGTH>>(),
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Float>::value, SIZE>>(),
                            std::forward<Args>( args )... );
+  case MessageTypes::Double:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Double>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::LongDouble:
+    return RBF2_INVOKE_FN( f,
+                           msg.as<ArrayMessage_<value_type<MessageTypes::LongDouble>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Char:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Char>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::WChar:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::WChar>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Bool:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Bool>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Octet:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Octet>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::UInt8:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt8>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Int8:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Int8>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::UInt16:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt16>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Int16:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Int16>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::UInt32:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt32>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Int32:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Int32>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::UInt64:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::UInt64>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Int64:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::Int64>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::String:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::String>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::WString:
+    return RBF2_INVOKE_FN( f, msg.as<ArrayMessage_<value_type<MessageTypes::WString>::value, SIZE>>(),
+                           std::forward<Args>( args )... );
+  case MessageTypes::Compound:
+    return RBF2_INVOKE_FN( f, msg.as<CompoundArrayMessage_<SIZE>>(), std::forward<Args>( args )... );
   case MessageTypes::Array:
     throw BabelFishException( "Arrays of arrays are not supported in ROS2!" );
-  case MessageTypes::None:
   default:
     throw BabelFishException( "invoke_for_array_message called with invalid message!" );
   }
@@ -537,26 +496,26 @@ template<typename Callable, typename... Args>
 auto invoke_for_array_message( ArrayMessageBase &msg, Callable &&f, Args &&...args )
 {
   if ( msg.isFixedSize() )
-    return impl::call_for_array_message<true, true>( msg, std::forward<Callable>( f ),
-                                                     std::forward<Args>( args )... );
+    return impl::call_for_array_message<ArraySize::FIXED_LENGTH>( msg, std::forward<Callable>( f ),
+                                                                  std::forward<Args>( args )... );
   if ( msg.isBounded() )
-    return impl::call_for_array_message<true, false>( msg, std::forward<Callable>( f ),
-                                                      std::forward<Args>( args )... );
-  return impl::call_for_array_message<false, false>( msg, std::forward<Callable>( f ),
-                                                     std::forward<Args>( args )... );
+    return impl::call_for_array_message<ArraySize::BOUNDED>( msg, std::forward<Callable>( f ),
+                                                             std::forward<Args>( args )... );
+  return impl::call_for_array_message<ArraySize::DYNAMIC>( msg, std::forward<Callable>( f ),
+                                                           std::forward<Args>( args )... );
 }
 
 template<typename Callable, typename... Args>
 auto invoke_for_array_message( const ArrayMessageBase &msg, Callable &&f, Args &&...args )
 {
   if ( msg.isFixedSize() )
-    return impl::call_for_array_message<true, true>( msg, std::forward<Callable>( f ),
-                                                     std::forward<Args>( args )... );
+    return impl::call_for_array_message<ArraySize::FIXED_LENGTH>( msg, std::forward<Callable>( f ),
+                                                                  std::forward<Args>( args )... );
   if ( msg.isBounded() )
-    return impl::call_for_array_message<true, false>( msg, std::forward<Callable>( f ),
-                                                      std::forward<Args>( args )... );
-  return impl::call_for_array_message<false, false>( msg, std::forward<Callable>( f ),
-                                                     std::forward<Args>( args )... );
+    return impl::call_for_array_message<ArraySize::BOUNDED>( msg, std::forward<Callable>( f ),
+                                                             std::forward<Args>( args )... );
+  return impl::call_for_array_message<ArraySize::DYNAMIC>( msg, std::forward<Callable>( f ),
+                                                           std::forward<Args>( args )... );
 }
 } // namespace ros_babel_fish
 

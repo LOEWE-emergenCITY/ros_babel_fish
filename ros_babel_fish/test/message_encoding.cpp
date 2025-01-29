@@ -32,41 +32,6 @@ std::shared_ptr<Message> waitForMessage( const std::string &topic )
   return result;
 }
 
-template<typename T, bool BOUNDED = false, bool FIXED_LENGTH = false>
-typename std::enable_if<!std::is_same<T, bool>::value and !std::is_same<T, std::string>::value, void>::type
-fillArray( ArrayMessage_<T, BOUNDED, FIXED_LENGTH> &msg, unsigned seed )
-{
-  std::default_random_engine generator( seed );
-  typedef
-      typename std::conditional<std::is_floating_point<T>::value, std::uniform_real_distribution<T>,
-                                std::uniform_int_distribution<T>>::type Distribution;
-  Distribution distribution( std::numeric_limits<T>::min(), std::numeric_limits<T>::max() );
-  if ( msg.isFixedSize() ) {
-    for ( size_t i = 0; i < msg.size(); ++i ) { msg.assign( i, distribution( generator ) ); }
-    return;
-  }
-  std::uniform_int_distribution<size_t> length_distribution( 10, 1000 );
-  size_t length = length_distribution( generator );
-  msg.resize( length );
-  for ( size_t i = 0; i < length; ++i ) { msg.at( i ) = distribution( generator ); }
-}
-
-template<typename T, bool BOUNDED = false, bool FIXED_LENGTH = false>
-typename std::enable_if<std::is_same<T, bool>::value, void>::type
-fillArray( ArrayMessage_<T, BOUNDED, FIXED_LENGTH> &msg, unsigned seed )
-{
-  std::default_random_engine generator( seed );
-  std::uniform_int_distribution<uint8_t> distribution( 0, 1 );
-  if ( msg.isFixedSize() ) {
-    for ( size_t i = 0; i < msg.size(); ++i ) { msg.assign( i, distribution( generator ) == 1 ); }
-    return;
-  }
-  std::uniform_int_distribution<size_t> length_distribution( 10, 1000 );
-  size_t length = length_distribution( generator );
-  msg.resize( length );
-  for ( size_t i = 0; i < length; ++i ) { msg.at( i ) = distribution( generator ) == 1; }
-}
-
 std::string randomString( unsigned seed, int length = -1 )
 {
   std::default_random_engine generator( seed );
@@ -84,91 +49,79 @@ std::string randomString( unsigned seed, int length = -1 )
   return std::string( result.data() );
 }
 
-template<typename T, bool BOUNDED = false, bool FIXED_LENGTH = false>
-typename std::enable_if<std::is_same<T, std::string>::value, void>::type
-fillArray( ArrayMessage_<T, BOUNDED, FIXED_LENGTH> &msg, unsigned seed )
+template<typename T, ArraySize SIZE>
+void fillArray( ArrayMessage_<T, SIZE> &msg, unsigned seed )
+{
+  using RandomType =
+      std::conditional_t<std::is_same_v<T, bool> || std::is_same_v<T, std::string>, int, T>;
+  using Distribution =
+      std::conditional_t<std::is_floating_point_v<T>, std::uniform_real_distribution<RandomType>,
+                         std::uniform_int_distribution<RandomType>>;
+  constexpr RandomType min = std::numeric_limits<RandomType>::lowest();
+  constexpr RandomType max = std::numeric_limits<RandomType>::max();
+  struct ValueSampler {
+    T operator()()
+    {
+      if constexpr ( std::is_same_v<T, bool> ) {
+        return distribution( generator ) == 1;
+      } else if constexpr ( std::is_same_v<T, std::string> ) {
+        return randomString( distribution( generator ) );
+      } else {
+        return distribution( generator );
+      }
+    }
+    unsigned seed;
+    std::default_random_engine generator;
+    Distribution distribution;
+  } sampler{ seed, std::default_random_engine( seed ), Distribution( min, max ) };
+  if constexpr ( SIZE == ArraySize::FIXED_LENGTH ) {
+    for ( size_t i = 0; i < msg.size(); ++i ) { msg.assign( i, sampler() ); }
+  } else {
+    std::uniform_int_distribution<size_t> length_distribution( 10, 1000 );
+    size_t length = length_distribution( sampler.generator );
+    msg.resize( length );
+    for ( size_t i = 0; i < length; ++i ) { msg.at( i ) = sampler(); }
+  }
+}
+
+template<typename T, ArraySize SIZE>
+void fillArray( CompoundArrayMessage_<SIZE> &msg, unsigned seed )
+{
+  std::default_random_engine generator( seed );
+  std::uniform_int_distribution<long> distribution( std::is_same_v<rclcpp::Time, T> ? 0 : -1E9, 1E9 );
+  using Unit = std::conditional_t<std::is_same_v<rclcpp::Time, T>, int64_t, std::chrono::nanoseconds>;
+  if constexpr ( SIZE == ArraySize::FIXED_LENGTH ) {
+    for ( size_t i = 0; i < msg.size(); ++i ) { msg[i] = T( Unit( distribution( generator ) ) ); }
+  } else {
+    std::uniform_int_distribution<size_t> length_distribution( 10, 1000 );
+    size_t length = length_distribution( generator );
+    msg.resize( length );
+    for ( size_t i = 0; i < length; ++i ) { msg.at( i ) = T( Unit( distribution( generator ) ) ); }
+  }
+}
+
+template<ArraySize SIZE>
+void fillArray( CompoundArrayMessage_<SIZE> &msg, unsigned seed )
 {
   std::default_random_engine generator( seed );
   std::uniform_int_distribution<unsigned> distribution( std::numeric_limits<unsigned>::min() );
-  if ( msg.isFixedSize() ) {
-    for ( size_t i = 0; i < msg.size(); ++i ) {
-      msg.assign( i, randomString( distribution( generator ), i == 0 ? 1 : -1 ) );
-    }
-    return;
-  }
-  std::uniform_int_distribution<size_t> length_distribution( BOUNDED ? 1 : 10,
-                                                             BOUNDED ? msg.maxSize() : 1000 );
-  size_t length = length_distribution( generator );
-  msg.resize( length );
-  for ( size_t i = 0; i < length; ++i ) {
-    msg.at( i ) = randomString( distribution( generator ), i == 0 ? 1 : -1 );
-  }
-}
-
-template<typename T, bool BOUNDED = false, bool FIXED_LENGTH = false>
-typename std::enable_if<std::is_same<T, rclcpp::Time>::value, void>::type
-fillArray( CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> &msg, unsigned seed )
-{
-  std::default_random_engine generator( seed );
-  std::uniform_real_distribution<double> distribution( 0, 1E9 );
-  if ( msg.isFixedSize() ) {
-    for ( size_t i = 0; i < msg.size(); ++i ) {
-      msg[i] = rclcpp::Time( distribution( generator ) );
-    }
-    return;
-  }
-  std::uniform_int_distribution<size_t> length_distribution( 10, 1000 );
-  size_t length = length_distribution( generator );
-  msg.resize( length );
-  for ( size_t i = 0; i < length; ++i ) { msg.at( i ) = rclcpp::Time( distribution( generator ) ); }
-}
-
-template<typename T, bool BOUNDED = false, bool FIXED_LENGTH = false>
-typename std::enable_if<std::is_same<T, rclcpp::Duration>::value, void>::type
-fillArray( CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> &msg, unsigned seed )
-{
-  std::default_random_engine generator( seed );
-  std::uniform_int_distribution<long> distribution( -1E9, 1E9 );
-  if ( msg.isFixedSize() ) {
-    for ( size_t i = 0; i < msg.size(); ++i ) {
-      msg[i] = rclcpp::Duration( std::chrono::nanoseconds( distribution( generator ) ) );
-    }
-    return;
-  }
-  std::uniform_int_distribution<size_t> length_distribution( 10, 1000 );
-  size_t length = length_distribution( generator );
-  msg.resize( length );
-  for ( size_t i = 0; i < length; ++i ) {
-    // int64_t nanoseconds constructor deprecated in galactic but from_nanoseconds not available in foxy
-#if RCLCPP_VERSION_MAJOR >= 9
-    msg.at( i ) = rclcpp::Duration::from_nanoseconds( distribution( generator ) );
-#else
-    msg.at( i ) = rclcpp::Duration( distribution( generator ) );
-#endif
-  }
-}
-
-template<bool BOUNDED = false, bool FIXED_LENGTH = false>
-void fillArray( CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> &msg, unsigned seed )
-{
-  std::default_random_engine generator( seed );
-  std::uniform_int_distribution<unsigned> distribution( std::numeric_limits<unsigned>::min() );
-  if ( msg.isFixedSize() ) {
+  if constexpr ( SIZE == ArraySize::FIXED_LENGTH ) {
     for ( size_t i = 0; i < msg.size(); ++i ) {
       fillArray( msg[i]["ints"].template as<ArrayMessage<int32_t>>(), seed++ );
       fillArray( msg[i]["strings"].template as<BoundedArrayMessage<std::string>>(), seed++ );
       fillArray<rclcpp::Time>( msg[i]["times"].template as<FixedLengthCompoundArrayMessage>(),
                                seed++ );
     }
-    return;
-  }
-  std::uniform_int_distribution<size_t> length_distribution( 10, 1000 );
-  size_t length = length_distribution( generator );
-  msg.resize( length );
-  for ( size_t i = 0; i < length; ++i ) {
-    fillArray( msg[i]["ints"].template as<ArrayMessage<int32_t>>(), seed++ );
-    fillArray( msg[i]["strings"].template as<BoundedArrayMessage<std::string>>(), seed++ );
-    fillArray<rclcpp::Time>( msg[i]["times"].template as<FixedLengthCompoundArrayMessage>(), seed++ );
+  } else {
+    std::uniform_int_distribution<size_t> length_distribution( 10, 1000 );
+    size_t length = length_distribution( generator );
+    msg.resize( length );
+    for ( size_t i = 0; i < length; ++i ) {
+      fillArray( msg[i]["ints"].template as<ArrayMessage<int32_t>>(), seed++ );
+      fillArray( msg[i]["strings"].template as<BoundedArrayMessage<std::string>>(), seed++ );
+      fillArray<rclcpp::Time>( msg[i]["times"].template as<FixedLengthCompoundArrayMessage>(),
+                               seed++ );
+    }
   }
 }
 

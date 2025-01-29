@@ -243,27 +243,26 @@ bool MessageContentEqualImpl( const ros_babel_fish::Message &a,
   return MessageContentEqualImpl( a["nanosec"], b.nanosec, path + ".nanosec", result );
 }
 
-template<typename T, bool BOUNDED, bool FIXED_LENGTH, typename Container>
+template<typename T, ros_babel_fish::ArraySize SIZE, typename Container>
 typename std::enable_if<ros_babel_fish::message_type_traits::message_type<T>::value !=
                             ros_babel_fish::MessageTypes::None,
                         bool>::type
-ArrayContentEqualImpl( const ros_babel_fish::ArrayMessage_<T, BOUNDED, FIXED_LENGTH> &arr,
-                       const Container &b, const std::string &path,
-                       ::testing::AssertionResult &result );
+ArrayContentEqualImpl( const ros_babel_fish::ArrayMessage_<T, SIZE> &arr, const Container &b,
+                       const std::string &path, ::testing::AssertionResult &result );
 
-template<typename T, bool BOUNDED, bool FIXED_LENGTH, typename Container>
+template<typename T, ros_babel_fish::ArraySize SIZE, typename Container>
 typename std::enable_if<ros_babel_fish::message_type_traits::message_type<T>::value ==
                             ros_babel_fish::MessageTypes::None,
                         bool>::type
-ArrayContentEqualImpl( const ros_babel_fish::ArrayMessage_<T, BOUNDED, FIXED_LENGTH> &,
-                       const Container &, const std::string &, ::testing::AssertionResult &result )
+ArrayContentEqualImpl( const ros_babel_fish::ArrayMessage_<T, SIZE> &, const Container &,
+                       const std::string &, ::testing::AssertionResult &result )
 {
   result << "This specialization should never have been called!";
   return false;
 }
 
-template<bool BOUNDED, bool FIXED_LENGTH, typename Container>
-bool ArrayContentEqualImpl( const ros_babel_fish::CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> &arr,
+template<ros_babel_fish::ArraySize SIZE, typename Container>
+bool ArrayContentEqualImpl( const ros_babel_fish::CompoundArrayMessage_<SIZE> &arr,
                             const Container &b, const std::string &path,
                             ::testing::AssertionResult &result );
 
@@ -543,13 +542,12 @@ template<typename MessageType>
   return MessageContentEqual( *a, b );
 }
 
-template<typename T, bool BOUNDED, bool FIXED_LENGTH, typename Container>
+template<typename T, ros_babel_fish::ArraySize SIZE, typename Container>
 typename std::enable_if<ros_babel_fish::message_type_traits::message_type<T>::value !=
                             ros_babel_fish::MessageTypes::None,
                         bool>::type
-ArrayContentEqualImpl( const ros_babel_fish::ArrayMessage_<T, BOUNDED, FIXED_LENGTH> &arr,
-                       const Container &b, const std::string &path,
-                       ::testing::AssertionResult &result )
+ArrayContentEqualImpl( const ros_babel_fish::ArrayMessage_<T, SIZE> &arr, const Container &b,
+                       const std::string &path, ::testing::AssertionResult &result )
 {
   using namespace ros_babel_fish;
   for ( size_t i = 0; i < arr.size(); ++i ) {
@@ -559,8 +557,8 @@ ArrayContentEqualImpl( const ros_babel_fish::ArrayMessage_<T, BOUNDED, FIXED_LEN
   return true;
 }
 
-template<bool BOUNDED, bool FIXED_LENGTH, typename Container>
-bool ArrayContentEqualImpl( const ros_babel_fish::CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> &arr,
+template<ros_babel_fish::ArraySize SIZE, typename Container>
+bool ArrayContentEqualImpl( const ros_babel_fish::CompoundArrayMessage_<SIZE> &arr,
                             const Container &b, const std::string &path,
                             ::testing::AssertionResult &result )
 {

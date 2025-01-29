@@ -16,6 +16,9 @@
 
 namespace ros_babel_fish
 {
+
+enum class ArraySize { DYNAMIC, BOUNDED, FIXED_LENGTH };
+
 class ArrayMessageBase : public Message
 {
 public:
@@ -67,18 +70,20 @@ protected:
   MessageMemberIntrospection member_;
 };
 
-template<typename T, bool BOUNDED, bool FIXED_LENGTH>
+template<typename T, ArraySize SIZE>
 class ArrayMessage_ final : public ArrayMessageBase
 {
-  using Reference = typename message_type_traits::array_type<T, FIXED_LENGTH>::Reference;
-  using ReturnType = typename message_type_traits::array_type<T, FIXED_LENGTH>::ReturnType;
-  using ConstReturnType = typename message_type_traits::array_type<T, FIXED_LENGTH>::ConstReturnType;
-  using ArgumentType = typename message_type_traits::array_type<T, FIXED_LENGTH>::ArgumentType;
-  static_assert( ( FIXED_LENGTH && BOUNDED ) || !FIXED_LENGTH,
-                 "Fixed length can only be true if bounded is also true!" );
+  using Reference =
+      typename message_type_traits::array_type<T, SIZE == ArraySize::FIXED_LENGTH>::Reference;
+  using ReturnType =
+      typename message_type_traits::array_type<T, SIZE == ArraySize::FIXED_LENGTH>::ReturnType;
+  using ConstReturnType =
+      typename message_type_traits::array_type<T, SIZE == ArraySize::FIXED_LENGTH>::ConstReturnType;
+  using ArgumentType =
+      typename message_type_traits::array_type<T, SIZE == ArraySize::FIXED_LENGTH>::ArgumentType;
 
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS( ArrayMessage_<T, BOUNDED, FIXED_LENGTH> )
+  RCLCPP_SMART_PTR_DEFINITIONS( ArrayMessage_<T, SIZE> )
 
   ArrayMessage_( const ArrayMessage_ & ) = delete;
 
@@ -92,42 +97,28 @@ public:
   // Explicitly use Message operator to prevent hidden warnings
   using Message::operator[];
 
-  template<typename ENABLED = T>
-  typename std::enable_if_t<FIXED_LENGTH || !std::is_same_v<ENABLED, bool>, Reference>
-  operator[]( size_t index )
+  Reference operator[]( size_t index )
   {
-    using Container =
-        typename std::conditional_t<FIXED_LENGTH, std::array<T, 987654321000>, std::vector<T>>;
-    if ( member_->get_function == nullptr ) {
-      if ( index >= size() )
-        throw std::out_of_range( "Index was out of range of array!" );
-      return ( *reinterpret_cast<Container *>( data_.get() ) )[index];
-    }
-    return *reinterpret_cast<ReturnType *>( member_->get_function( data_.get(), index ) );
-  }
-
-  template<typename ENABLED = T>
-  typename std::enable_if_t<!FIXED_LENGTH && std::is_same_v<ENABLED, bool>, Reference>
-  operator[]( size_t index )
-  {
-    // Need to specialize for bool because std::vector<bool> is specialized and uses one bit per
-    // bool, hence, you can not return a bool reference but need to use std::_Bit_reference
     if ( index >= size() )
       throw std::out_of_range( "Index was out of range of array!" );
-    return ( *reinterpret_cast<std::vector<T> *>( data_.get() ) )[index];
+    if constexpr ( SIZE != ArraySize::FIXED_LENGTH && std::is_same_v<T, bool> ) {
+      return ( *reinterpret_cast<std::vector<T> *>( data_.get() ) )[index];
+    } else {
+      if ( member_->get_function == nullptr ) {
+        if constexpr ( SIZE == ArraySize::DYNAMIC ) {
+          return ( *reinterpret_cast<std::vector<T> *>( data_.get() ) )[index];
+        }
+        // This is the maximum object size divided by 1000 (so huge primitive types would fit).
+        // The actual object is obviously smaller, but we have checked the index already.
+        return ( *reinterpret_cast<std::array<T, 9223372036854775> *>( data_.get() ) )[index];
+      }
+      return *reinterpret_cast<ReturnType *>( member_->get_function( data_.get(), index ) );
+    }
   }
 
   ConstReturnType operator[]( size_t index ) const
   {
-    using Container =
-        typename std::conditional_t<FIXED_LENGTH, std::array<T, 987654321000>, std::vector<T>>;
-    if ( member_->get_function == nullptr ) {
-      if ( index >= size() )
-        throw std::out_of_range( "Index was out of range of array!" );
-      return ( *reinterpret_cast<const Container *>( data_.get() ) )[index];
-    }
-    return *reinterpret_cast<const ConstReturnType *>(
-        member_->get_const_function( data_.get(), index ) );
+    return const_cast<ArrayMessage_ *>( this )->operator[]( index );
   }
 
   Reference at( size_t index ) { return operator[]( index ); }
@@ -141,7 +132,7 @@ public:
   void assign( size_t index, ArgumentType value ) { ( *this )[index] = value; }
 
   //! Method only for fixed length arrays to fill the array with the given value.
-  template<bool ENABLED = FIXED_LENGTH>
+  template<bool ENABLED = SIZE == ArraySize::FIXED_LENGTH>
   typename std::enable_if_t<ENABLED, void> fill( ArgumentType &value )
   {
     for ( size_t i = 0; i < maxSize(); ++i ) assign( i, value );
@@ -152,12 +143,11 @@ public:
 
   void push_back( ArgumentType value )
   {
-    if ( BOUNDED ) {
-      if ( FIXED_LENGTH )
-        throw std::length_error( "Can not push back on fixed length array!" );
-      // This means it is upper bound, otherwise the method would not be enabled / available
-      if ( member_->array_size_ <= member_->size_function( data_.get() ) )
+    static_assert( SIZE != ArraySize::FIXED_LENGTH, "Can not push back on fixed length array!" );
+    if constexpr ( SIZE == ArraySize::BOUNDED ) {
+      if ( member_->array_size_ <= member_->size_function( data_.get() ) ) {
         throw std::length_error( "Exceeded upper bound!" );
+      }
     }
     reinterpret_cast<std::vector<T> *>( data_.get() )->push_back( value );
   }
@@ -169,19 +159,17 @@ public:
   {
     if ( size() == 0 )
       return;
-    if ( FIXED_LENGTH )
-      throw std::length_error( "Can not pop_back fixed length array!" );
+    static_assert( SIZE != ArraySize::FIXED_LENGTH, "Can not pop_back fixed length array!" );
     resize( size() - 1 );
   }
 
   void resize( size_t length )
   {
-    if ( BOUNDED ) {
-      if ( FIXED_LENGTH )
-        throw std::length_error( "Can not resize fixed length array!" );
-      // This means it is upper bound, otherwise the method would not be enabled / available
-      if ( member_->array_size_ < length )
+    static_assert( SIZE != ArraySize::FIXED_LENGTH, "Can not resize fixed length array!" );
+    if constexpr ( SIZE == ArraySize::BOUNDED ) {
+      if ( member_->array_size_ < length ) {
         throw std::length_error( "Exceeded upper bound!" );
+      }
     }
     if ( member_->resize_function == nullptr )
       reinterpret_cast<std::vector<T> *>( data_.get() )->resize( length );
@@ -191,7 +179,7 @@ public:
 
   size_t size() const override
   {
-    if ( FIXED_LENGTH )
+    if ( SIZE == ArraySize::FIXED_LENGTH )
       return member_->array_size_;
 
     if ( member_->size_function == nullptr )
@@ -201,15 +189,12 @@ public:
 
   void clear()
   {
-    if ( FIXED_LENGTH ) {
-      throw BabelFishException( "Can not clear fixed length array!" );
-    } else {
-      resize( 0 );
-    }
+    static_assert( SIZE != ArraySize::FIXED_LENGTH, "Can not clear fixed length array!" );
+    resize( 0 );
   }
 
-  template<typename ArrayT, size_t ArrayLength, bool ENABLED = FIXED_LENGTH>
-  typename std::enable_if_t<ENABLED, ArrayMessage_<T, BOUNDED, FIXED_LENGTH> &>
+  template<typename ArrayT, size_t ArrayLength, bool ENABLED = SIZE == ArraySize::FIXED_LENGTH>
+  typename std::enable_if_t<ENABLED, ArrayMessage_<T, SIZE> &>
   operator=( const std::array<ArrayT, ArrayLength> &other )
   {
     if ( size() != ArrayLength )
@@ -218,29 +203,31 @@ public:
     return *this;
   }
 
-protected:
+private:
   void _assign( const ArrayMessageBase &other ) override
   {
     if ( other.isBounded() ) {
-      if ( other.isFixedSize() ) {
-        _assignImpl<true, true>( other );
-        return;
-      }
-      _assignImpl<true, false>( other );
+      _assignImpl<ArraySize::BOUNDED>( other );
       return;
     }
-    _assignImpl<false, false>( other );
+    if ( other.isFixedSize() ) {
+      _assignImpl<ArraySize::FIXED_LENGTH>( other );
+      return;
+    }
+    _assignImpl<ArraySize::DYNAMIC>( other );
   }
 
-  template<bool B, bool FL>
+  template<ArraySize OTHER_SIZE>
   void _assignImpl( const ArrayMessageBase &other )
   {
-    auto &other_typed = dynamic_cast<const ArrayMessage_<T, B, FL> &>( other );
-    if ( BOUNDED && other.size() > maxSize() ) {
-      throw std::out_of_range(
-          "Can not assign ArrayMessage as it exceeds the maximum size of this ArrayMessage!" );
+    auto &other_typed = dynamic_cast<const ArrayMessage_<T, OTHER_SIZE> &>( other );
+    if constexpr ( SIZE == ArraySize::BOUNDED ) {
+      if ( other.size() > maxSize() ) {
+        throw std::out_of_range(
+            "Can not assign ArrayMessage as it exceeds the maximum size of this ArrayMessage!" );
+      }
     }
-    if ( !FIXED_LENGTH )
+    if constexpr ( SIZE != ArraySize::FIXED_LENGTH )
       resize( other.size() );
     for ( size_t index = 0; index < other.size(); ++index ) at( index ) = other_typed.at( index );
   }
@@ -249,18 +236,18 @@ protected:
   {
     const auto &other = o.as<ArrayMessageBase>();
     if ( other.isBounded() ) {
-      if ( other.isFixedSize() ) {
-        return _isMessageEqualImpl<true, true>( other );
-      }
-      return _isMessageEqualImpl<true, false>( other );
+      return _isMessageEqualImpl<ArraySize::BOUNDED>( other );
     }
-    return _isMessageEqualImpl<false, false>( other );
+    if ( other.isFixedSize() ) {
+      return _isMessageEqualImpl<ArraySize::FIXED_LENGTH>( other );
+    }
+    return _isMessageEqualImpl<ArraySize::DYNAMIC>( other );
   }
 
-  template<bool B, bool FL>
+  template<ArraySize OTHER_SIZE>
   bool _isMessageEqualImpl( const ArrayMessageBase &other ) const
   {
-    auto &other_typed = dynamic_cast<const ArrayMessage_<T, B, FL> &>( other );
+    auto &other_typed = dynamic_cast<const ArrayMessage_<T, OTHER_SIZE> &>( other );
     if ( size() != other.size() )
       return false;
     for ( size_t index = 0; index < size(); ++index ) {
@@ -272,23 +259,20 @@ protected:
 };
 
 template<typename T>
-using ArrayMessage = ArrayMessage_<T, false, false>;
+using ArrayMessage = ArrayMessage_<T, ArraySize::DYNAMIC>;
 
 template<typename T>
-using FixedLengthArrayMessage = ArrayMessage_<T, true, true>;
+using FixedLengthArrayMessage = ArrayMessage_<T, ArraySize::FIXED_LENGTH>;
 
 template<typename T>
-using BoundedArrayMessage = ArrayMessage_<T, true, false>;
+using BoundedArrayMessage = ArrayMessage_<T, ArraySize::BOUNDED>;
 
 //! Specialization for CompoundMessage
-template<bool BOUNDED, bool FIXED_LENGTH>
+template<ArraySize SIZE>
 class CompoundArrayMessage_ final : public ArrayMessageBase
 {
-  static_assert( ( FIXED_LENGTH && BOUNDED ) || !FIXED_LENGTH,
-                 "Fixed length can only be true if bounded is also true!" );
-
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS( CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> )
+  RCLCPP_SMART_PTR_DEFINITIONS( CompoundArrayMessage_<SIZE> )
 
   /*!
    * Creates a compound array, i.e., an array of compound messages in contrast to arrays of primitives such as int, bool etc.
@@ -346,11 +330,11 @@ public:
 
   void push_back( const CompoundMessage &value )
   {
-    if ( BOUNDED ) {
-      if ( FIXED_LENGTH )
-        throw std::length_error( "Can not push back on fixed length array!" );
-      if ( member_->array_size_ <= member_->size_function( data_.get() ) )
+    static_assert( SIZE != ArraySize::FIXED_LENGTH, "Can not push back on fixed length array!" );
+    if constexpr ( SIZE == ArraySize::BOUNDED ) {
+      if ( member_->array_size_ <= member_->size_function( data_.get() ) ) {
         throw std::length_error( "Exceeded upper bound!" );
+      }
     }
     const size_t index = size();
     resize( index + 1 );
@@ -372,8 +356,7 @@ public:
   {
     if ( size() == 0 )
       return;
-    if ( FIXED_LENGTH )
-      throw std::length_error( "Can not pop_back fixed length array!" );
+    static_assert( SIZE != ArraySize::FIXED_LENGTH, "Can not pop_back fixed length array!" );
     resize( size() - 1 );
   }
 
@@ -381,11 +364,11 @@ public:
   {
     if ( length == values_.size() )
       return;
-    if ( BOUNDED ) {
-      if ( FIXED_LENGTH )
-        throw std::length_error( "Can not resize fixed length array!" );
-      if ( member_->array_size_ < length )
+    static_assert( SIZE != ArraySize::FIXED_LENGTH, "Can not resize fixed length array!" );
+    if constexpr ( SIZE == ArraySize::BOUNDED ) {
+      if ( member_->array_size_ < length ) {
         throw std::length_error( "Exceeded upper bound!" );
+      }
     }
     member_->resize_function( data_.get(), length );
     values_.resize( length );
@@ -413,23 +396,20 @@ public:
     return { values_.begin(), values_.end() };
   }
 
-  template<bool B, bool FL>
-  CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> &operator=( const CompoundArrayMessage_<B, FL> &other )
+  template<ArraySize OTHER_SIZE>
+  CompoundArrayMessage_<SIZE> &operator=( const CompoundArrayMessage_<OTHER_SIZE> &other )
   {
     if ( this == &other )
       return *this;
-    _assignImpl<B, FL>( other );
+    _assignImpl<OTHER_SIZE>( other );
     return *this;
   }
 
   void clear()
   {
-    if ( FIXED_LENGTH ) {
-      throw BabelFishException( "Can not clear fixed length array!" );
-    } else {
-      member_->resize_function( data_.get(), 0 );
-      values_.clear();
-    }
+    static_assert( SIZE != ArraySize::FIXED_LENGTH, "Can not clear fixed length array!" );
+    member_->resize_function( data_.get(), 0 );
+    values_.clear();
   }
 
 protected:
@@ -489,25 +469,28 @@ private:
   void _assign( const ArrayMessageBase &other ) override
   {
     if ( other.isBounded() ) {
-      if ( other.isFixedSize() ) {
-        _assignImpl<true, true>( other );
-        return;
-      }
-      _assignImpl<true, false>( other );
+      _assignImpl<ArraySize::BOUNDED>( other );
       return;
     }
-    _assignImpl<false, false>( other );
+    if ( other.isFixedSize() ) {
+      _assignImpl<ArraySize::FIXED_LENGTH>( other );
+      return;
+    }
+    _assignImpl<ArraySize::DYNAMIC>( other );
   }
 
-  template<bool B, bool FL>
+  template<ArraySize OTHER_SIZE>
   void _assignImpl( const ArrayMessageBase &other )
   {
-    auto &other_typed = static_cast<const CompoundArrayMessage_<B, FL> &>( other );
-    if ( BOUNDED && other.size() > maxSize() ) {
-      throw std::out_of_range( "Can not assign CompoundArrayMessage as it exceeds the maximum size "
-                               "of this CompoundArrayMessage!" );
+    auto &other_typed = static_cast<const CompoundArrayMessage_<OTHER_SIZE> &>( other );
+    if constexpr ( SIZE == ArraySize::BOUNDED ) {
+      if ( other.size() > maxSize() ) {
+        throw std::out_of_range(
+            "Can not assign CompoundArrayMessage as it exceeds the maximum size "
+            "of this CompoundArrayMessage!" );
+      }
     }
-    if ( !FIXED_LENGTH )
+    if constexpr ( SIZE != ArraySize::FIXED_LENGTH )
       resize( other.size() );
     for ( size_t index = 0; index < other.size(); ++index ) at( index ) = other_typed.at( index );
   }
@@ -516,18 +499,18 @@ private:
   {
     const auto &other = o.as<ArrayMessageBase>();
     if ( other.isBounded() ) {
-      if ( other.isFixedSize() ) {
-        return _isMessageEqualImpl<true, true>( other );
-      }
-      return _isMessageEqualImpl<true, false>( other );
+      return _isMessageEqualImpl<ArraySize::BOUNDED>( other );
     }
-    return _isMessageEqualImpl<false, false>( other );
+    if ( other.isFixedSize() ) {
+      return _isMessageEqualImpl<ArraySize::FIXED_LENGTH>( other );
+    }
+    return _isMessageEqualImpl<ArraySize::DYNAMIC>( other );
   }
 
-  template<bool B, bool FL>
+  template<ArraySize OTHER_SIZE>
   bool _isMessageEqualImpl( const ArrayMessageBase &other ) const
   {
-    auto &other_typed = dynamic_cast<const CompoundArrayMessage_<B, FL> &>( other );
+    auto &other_typed = dynamic_cast<const CompoundArrayMessage_<OTHER_SIZE> &>( other );
     if ( size() != other.size() )
       return false;
     for ( size_t index = 0; index < size(); ++index ) {
@@ -540,11 +523,11 @@ private:
   mutable std::vector<CompoundMessage::SharedPtr> values_;
 };
 
-using CompoundArrayMessage = CompoundArrayMessage_<false, false>;
+using CompoundArrayMessage = CompoundArrayMessage_<ArraySize::DYNAMIC>;
 
-using FixedLengthCompoundArrayMessage = CompoundArrayMessage_<true, true>;
+using FixedLengthCompoundArrayMessage = CompoundArrayMessage_<ArraySize::FIXED_LENGTH>;
 
-using BoundedCompoundArrayMessage = CompoundArrayMessage_<true, false>;
+using BoundedCompoundArrayMessage = CompoundArrayMessage_<ArraySize::BOUNDED>;
 } // namespace ros_babel_fish
 
 #endif // ROS_BABEL_FISH_ARRAY_MESSAGE_HPP

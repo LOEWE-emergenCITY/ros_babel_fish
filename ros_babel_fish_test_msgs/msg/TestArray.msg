@@ -14,4 +14,4 @@ builtin_interfaces/Duration[12] durations
 string[] strings
 TestSubArray[10] subarrays_fixed
 TestSubArray[] subarrays
-
+TestSubArray subarray

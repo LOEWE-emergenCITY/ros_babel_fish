@@ -242,132 +242,131 @@
 
 #define _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION( FUNCTION, ... ) FUNCTION( __VA_ARGS__ )
 
-#define _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ARRAY, BOUNDED, FIXEDLENGTH, ... )                     \
+#define _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ARRAY, SIZE, ... )                                     \
   switch ( ARRAY.elementType() ) {                                                                        \
   case MessageTypes::Bool:                                                                                \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::Bool>::value,       \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::Octet:                                                                               \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::Octet>::value,      \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::UInt8:                                                                               \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::UInt8>::value,      \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::UInt16:                                                                              \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::UInt16>::value,     \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::UInt32:                                                                              \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::UInt32>::value,     \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::UInt64:                                                                              \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::UInt64>::value,     \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::Int8:                                                                                \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::Int8>::value,       \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::Int16:                                                                               \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::Int16>::value,      \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::Int32:                                                                               \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::Int32>::value,      \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::Int64:                                                                               \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::Int64>::value,      \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::Float:                                                                               \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::Float>::value,      \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::Double:                                                                              \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::Double>::value,     \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::LongDouble:                                                                          \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::LongDouble>::value, \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::Char:                                                                                \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::Char>::value,       \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::WChar:                                                                               \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::WChar>::value,      \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::String:                                                                              \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::String>::value,     \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::WString:                                                                             \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
         (ARRAY.as<typename ::ros_babel_fish::ArrayMessage_<                                               \
              typename ::ros_babel_fish::message_type_traits::value_type<MessageTypes::WString>::value,    \
-             BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, ) __VA_ARGS__ );                                       \
+             SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );                                                       \
     break;                                                                                                \
   case MessageTypes::Compound:                                                                            \
     _RBF2_TEMPLATE_CALL_ARRAY_FUNCTION(                                                                   \
         FUNCTION,                                                                                         \
-        (ARRAY.as<::ros_babel_fish::CompoundArrayMessage_<BOUNDED, FIXEDLENGTH>>())__VA_OPT__(, )         \
-            __VA_ARGS__ );                                                                                \
+        (ARRAY.as<::ros_babel_fish::CompoundArrayMessage_<SIZE>>())__VA_OPT__(, ) __VA_ARGS__ );          \
     break;                                                                                                \
   case MessageTypes::Array:                                                                               \
   case MessageTypes::None:                                                                                \
@@ -377,9 +376,9 @@
 /*!
  * Call a function with the signature:
  * fn( array, ... )
- * where array can be ::ros_babel_fish::ArrayMessage_<T, BOUNDED, FIXED_LENGTH>
- *   or ::ros_babel_fish::CompoundArrayMessage_<BOUNDED, FIXED_LENGTH>
- * and BOUNDED, FIXED_LENGTH are booleans indicating whether the array is bounded or fixed_length (which implies bounded).
+ * where array can be ::ros_babel_fish::ArrayMessage_<T, SIZE>
+ *   or ::ros_babel_fish::CompoundArrayMessage_<SIZE>
+ * and SIZE is of the enum ArraySize indicating whether the array is bounded or fixed_length.
  */
 #define RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ARRAY, ... )                                          \
   do {                                                                                                  \
@@ -388,11 +387,14 @@
                        std::remove_const<std::remove_reference<decltype( ARRAY )>::type>::type>::value, \
         "Second argument to macro needs to be of type ArrayMessageBase!" );                             \
     if ( ( ARRAY ).isFixedSize() ) {                                                                    \
-      _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ( ARRAY ), true, true, __VA_ARGS__ )                   \
+      _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ( ARRAY ),                                             \
+                                       ::ros_babel_fish::ArraySize::FIXED_LENGTH, __VA_ARGS__ )         \
     } else if ( ( ARRAY ).isBounded() ) {                                                               \
-      _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ( ARRAY ), true, false, __VA_ARGS__ )                  \
+      _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ( ARRAY ), ::ros_babel_fish::ArraySize::BOUNDED,       \
+                                       __VA_ARGS__ )                                                    \
     } else {                                                                                            \
-      _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ( ARRAY ), false, false, __VA_ARGS__ )                 \
+      _RBF2_TEMPLATE_CALL_ARRAY_TYPES( FUNCTION, ( ARRAY ), ::ros_babel_fish::ArraySize::DYNAMIC,       \
+                                       __VA_ARGS__ )                                                    \
     }                                                                                                   \
   } while ( false )
 

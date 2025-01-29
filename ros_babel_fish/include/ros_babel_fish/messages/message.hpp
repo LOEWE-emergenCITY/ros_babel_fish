@@ -17,6 +17,8 @@
 namespace ros_babel_fish
 {
 
+enum class ArraySize;
+
 /*!
  * Message representation used by BabelFish.
  * Wraps the memory of an actual type erased ROS2 message.
@@ -218,8 +220,7 @@ protected:
   MessageType type_;
 
   friend class CompoundMessage;
-
-  template<bool, bool>
+  template<ArraySize>
   friend class CompoundArrayMessage_;
 };
 

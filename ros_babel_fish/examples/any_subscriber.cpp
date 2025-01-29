@@ -129,8 +129,8 @@ void printArray( const T &message, const std::string & )
   std::cout << "]" << std::endl;
 }
 
-template<bool BOUNDED, bool FIXED_LENGTH>
-void printArray( const ros_babel_fish::CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> &message,
+template<ros_babel_fish::ArraySize SIZE>
+void printArray( const ros_babel_fish::CompoundArrayMessage_<SIZE> &message,
                  const std::string &prefix )
 {
   std::cout << std::endl;
