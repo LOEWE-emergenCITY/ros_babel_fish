@@ -2,6 +2,17 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.25.2 (2025-02-07)
+-------------------
+* Fixed FixedLengthArray assigns in CompoundMessages (`#11 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/11>`_).
+* Use no declaration instead of static assert for compilers that evaluate it even when not used.
+* Added a method to get the actual underlying message from a compound message.
+  Usage:
+  using geometry_msgs::msg::Point;
+  Point point = compound["position"].as<CompoundMessage>().message<Point>();
+* Replaced action_tutorials_interfaces by example_interfaces.
+* Contributors: Stefan Fabian
+
 0.10.3 (2024-12-03)
 -------------------
 * Fixes service server segfaulting (`#10 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/10>`_) and adds a new test to cover this.
