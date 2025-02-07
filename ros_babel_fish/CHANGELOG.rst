@@ -2,6 +2,19 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3.25.2 (2025-02-07)
+-------------------
+* Refactored array size templating and improved compile time checks by moving checks to constexpr.
+  Fixes (`#11 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/11>`_).
+  This reduces the potential for errors and allows easier compile time checking.
+  Many checks are also moved to constexpr and static assertions catching common errors at compile time instead of run time.
+* Use no declaration instead of static assert for compilers that evaluate it even when not used.
+* Added a method to get the actual underlying message from a compound message.
+  Usage:
+  using geometry_msgs::msg::Point;
+  Point point = compound["position"].as<CompoundMessage>().message<Point>();
+* Contributors: Stefan Fabian
+
 0.10.2 (2024-12-03)
 -------------------
 * Fixes service server segfaulting (`#10 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/10>`_) and adds a new test to cover this.
