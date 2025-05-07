@@ -100,6 +100,7 @@ protected:
         "/test_message_decoding/sub_test_array", 1 );
     test_array_pub_ = node->create_publisher<ros_babel_fish_test_msgs::msg::TestArray>(
         "/test_message_decoding/test_array", 1 );
+    namespace_test_pub_ = node->create_publisher<geometry_msgs::msg::Point>( "namespaced_topic", 1 );
 
     using namespace std::chrono_literals;
     publish_timer_ = node->create_wall_timer( 50ms, [this] { publish(); } );
@@ -115,6 +116,7 @@ protected:
     test_message_pub_->publish( test_message );
     test_sub_array_pub_->publish( test_array.subarrays[0] );
     test_array_pub_->publish( test_array );
+    namespace_test_pub_->publish( geometry_msgs_point );
   }
 
   BabelFish fish;
@@ -134,6 +136,7 @@ protected:
   rclcpp::Publisher<ros_babel_fish_test_msgs::msg::TestMessage>::SharedPtr test_message_pub_;
   rclcpp::Publisher<ros_babel_fish_test_msgs::msg::TestSubArray>::SharedPtr test_sub_array_pub_;
   rclcpp::Publisher<ros_babel_fish_test_msgs::msg::TestArray>::SharedPtr test_array_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr namespace_test_pub_;
 
   rclcpp::TimerBase::SharedPtr publish_timer_;
 };
@@ -226,6 +229,14 @@ TEST_F( MessageDecodingTest, tests )
 
   ASSERT_EQ( msg->name(), "ros_babel_fish_test_msgs/msg/TestMessage" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_message, *msg ) );
+
+  subscription =
+      fish.create_subscription( *node, "namespaced_topic", 1, callback, nullptr, {}, 200ms );
+  ASSERT_NE( subscription, nullptr );
+  ASSERT_EQ( set.wait( 5s ).kind(), rclcpp::WaitResultKind::Ready );
+  subscription.reset();
+  ASSERT_EQ( msg->name(), "geometry_msgs/msg/Point" );
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( geometry_msgs_point, *msg ) );
 }
 
 TEST_F( MessageDecodingTest, arrayTests )
@@ -263,7 +274,7 @@ int main( int argc, char **argv )
 {
   testing::InitGoogleTest( &argc, argv );
   rclcpp::init( argc, argv );
-  node = std::make_shared<rclcpp::Node>( "message_decoding_test" );
+  node = std::make_shared<rclcpp::Node>( "message_decoding_test", "babel_fish_namespace" );
   std::thread spinner( []() { rclcpp::spin( node ); } );
   int result = RUN_ALL_TESTS();
   rclcpp::shutdown();
