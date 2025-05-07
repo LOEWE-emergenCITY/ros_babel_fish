@@ -7,6 +7,7 @@
 
 #include <rclcpp/graph_listener.hpp>
 #include <rclcpp/node.hpp>
+#include <rclcpp/node_interfaces/get_node_topics_interface.hpp>
 #include <rclcpp/wait_set.hpp>
 
 using namespace std::chrono_literals;
@@ -17,11 +18,13 @@ namespace impl
 {
 namespace
 {
-bool has_topic( const rclcpp::Node &node, const std::string &topic, std::vector<std::string> &types )
+bool has_topic( rclcpp::Node &node, const std::string &topic, std::vector<std::string> &types )
 {
   const std::map<std::string, std::vector<std::string>> &topics = node.get_topic_names_and_types();
-  auto it = std::find_if( topics.begin(), topics.end(),
-                          [&topic]( const auto &entry ) { return entry.first == topic; } );
+  const std::string &resolved_topic = node.get_node_topics_interface()->resolve_topic_name( topic );
+  auto it = std::find_if( topics.begin(), topics.end(), [&resolved_topic]( const auto &entry ) {
+    return entry.first == resolved_topic;
+  } );
   if ( it == topics.end() )
     return false;
   types = it->second;
