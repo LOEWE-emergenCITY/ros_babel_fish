@@ -213,10 +213,16 @@ public:
   //! @copydoc create_action_goal_request
   CompoundMessage::SharedPtr create_action_goal_shared( const std::string &type ) const;
 
+  //! Loads and returns the type support for the given message type, e.g., std_msgs/msg/Int32
+  //! @throws TypeSupportException If the type is invalid or could not be loaded.
   MessageTypeSupport::ConstSharedPtr get_message_type_support( const std::string &type ) const;
 
+  //! Loads and returns the type support for the given service type, e.g., std_srvs/srv/SetBool
+  //! @throws TypeSupportException If the type is invalid or could not be loaded.
   ServiceTypeSupport::ConstSharedPtr get_service_type_support( const std::string &type ) const;
 
+  //! Loads and returns the type support for the given action type.
+  //! @throws TypeSupportException If the type is invalid or could not be loaded.
   ActionTypeSupport::ConstSharedPtr get_action_type_support( const std::string &type ) const;
 
   std::vector<TypeSupportProvider::SharedPtr> type_support_providers();

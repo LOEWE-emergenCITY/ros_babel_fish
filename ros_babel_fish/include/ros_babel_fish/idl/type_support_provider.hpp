@@ -19,10 +19,18 @@ public:
 
   TypeSupportProvider();
 
+  virtual ~TypeSupportProvider() = default;
+
+  //! @returns The type support for introspection for the given message type, e.g., std_msgs/msg/Int32
+  //! @throws TypeSupportException If the type is invalid or could not be loaded.
   MessageTypeSupport::ConstSharedPtr getMessageTypeSupport( const std::string &type ) const;
 
+  //! @returns The type support for introspection for the given service type, e.g., std_srvs/srv/SetBool
+  //! @throws TypeSupportException If the type is invalid or could not be loaded.
   ServiceTypeSupport::ConstSharedPtr getServiceTypeSupport( const std::string &type ) const;
 
+  //! @returns The type support for introspection for the given action type.
+  //! @throws TypeSupportException If the type is invalid or could not be loaded.
   ActionTypeSupport::ConstSharedPtr getActionTypeSupport( const std::string &type ) const;
 
 protected:
