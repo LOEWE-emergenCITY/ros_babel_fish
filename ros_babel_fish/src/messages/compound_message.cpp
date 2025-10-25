@@ -36,38 +36,18 @@ CompoundMessage::CompoundMessage( const CompoundMessage &other )
 {
 }
 
-std::string CompoundMessage::datatype() const
-{
-  return std::string( members_.value->message_namespace_ ) + "::" + members_.value->message_name_;
-}
+std::string CompoundMessage::datatype() const { return members_.getMessageDatatype(); }
 
-std::string CompoundMessage::name() const
-{
-  static const std::regex namespace_regex( "::" );
-  return std::regex_replace( members_.value->message_namespace_, namespace_regex, "/" ) + "/" +
-         members_.value->message_name_;
-}
+std::string CompoundMessage::name() const { return members_.getMessageName(); }
 
 bool CompoundMessage::containsKey( const std::string &key ) const
 {
-  for ( uint32_t i = 0; i < members_.value->member_count_; ++i ) {
-    if ( members_.value->members_[i].name_ == key )
-      return true;
-  }
-  return false;
+  return members_.containsMember( key );
 }
 
-std::vector<std::string> CompoundMessage::keys() const
-{
-  std::vector<std::string> result;
-  result.reserve( members_.value->member_count_ );
-  for ( uint32_t i = 0; i < members_.value->member_count_; ++i ) {
-    result.emplace_back( members_.value->members_[i].name_ );
-  }
-  return result;
-}
+std::vector<std::string> CompoundMessage::keys() const { return members_.memberNames(); }
 
-std::string CompoundMessage::keyAt( size_t index )
+std::string CompoundMessage::keyAt( size_t index ) const
 {
   return index >= members_.value->member_count_ ? "" : members_.value->members_[index].name_;
 }
@@ -81,7 +61,7 @@ CompoundMessage &CompoundMessage::operator=( const Message &other )
 CompoundMessage &CompoundMessage::operator=( const builtin_interfaces::msg::Time &value )
 {
   if ( datatype() != "builtin_interfaces::msg::Time" )
-    throw BabelFishException( "Tried to _assign rclcpp::Time to '" + name() +
+    throw BabelFishException( "Tried to assign rclcpp::Time to '" + name() +
                               "' message which is not a 'builtin_interfaces/msg/Time' message!" );
   ( *this )["sec"] = value.sec;
   ( *this )["nanosec"] = value.nanosec;
@@ -92,7 +72,7 @@ CompoundMessage &CompoundMessage::operator=( const builtin_interfaces::msg::Dura
 {
   if ( datatype() != "builtin_interfaces::msg::Duration" )
     throw BabelFishException(
-        "Tried to _assign rclcpp::Duration to '" + name() +
+        "Tried to assign rclcpp::Duration to '" + name() +
         "' message which is not a 'builtin_interfaces/msg/Duration' message!" );
   ( *this )["sec"] = value.sec;
   ( *this )["nanosec"] = value.nanosec;
@@ -115,11 +95,9 @@ CompoundMessage &CompoundMessage::operator=( const CompoundMessage &other )
 {
   if ( this == &other )
     return *this;
-  if ( members_.value != other.members_.value ) {
-    if ( other.members_.value->message_namespace_ != members_.value->message_namespace_ ||
-         other.members_.value->message_name_ != members_.value->message_name_ )
-      throw BabelFishException( "Tried to _assign compound of name '" + other.name() +
-                                "' to compound of name '" + name() + "'!" );
+  if ( members_.value != other.members_.value && other.datatype() != datatype() ) {
+    throw BabelFishException( "Tried to assign compound of name '" + other.name() +
+                              "' to compound of name '" + name() + "'!" );
   }
   for ( uint32_t i = 0; i < members_.value->member_count_; ++i ) *( *this )[i] = *other[i];
   return *this;
@@ -181,7 +159,7 @@ template<>
 void ArrayInit<ArraySize::DYNAMIC>::initArrayMessage<ArrayMessageBase>(
     Message::SharedPtr &, const MessageMemberIntrospection &, const std::shared_ptr<void> & )
 {
-  throw std::runtime_error(
+  throw BabelFishException(
       "Arrays of arrays are not supported by ROS2 (yet)! Please open an issue if this changed!" );
 }
 
@@ -190,7 +168,7 @@ template<>
 void ArrayInit<ArraySize::BOUNDED>::initArrayMessage<ArrayMessageBase>(
     Message::SharedPtr &, const MessageMemberIntrospection &, const std::shared_ptr<void> & )
 {
-  throw std::runtime_error(
+  throw BabelFishException(
       "Arrays of arrays are not supported by ROS2 (yet)! Please open an issue if this changed!" );
 }
 
@@ -199,7 +177,7 @@ template<>
 void ArrayInit<ArraySize::FIXED_LENGTH>::initArrayMessage<ArrayMessageBase>(
     Message::SharedPtr &, const MessageMemberIntrospection &, const std::shared_ptr<void> & )
 {
-  throw std::runtime_error(
+  throw BabelFishException(
       "Arrays of arrays are not supported by ROS2 (yet)! Please open an issue if this changed!" );
 }
 
@@ -237,7 +215,7 @@ void initValue( Message::SharedPtr &message, const MessageMemberIntrospection &m
     // Empty deleter with copy to data to make sure the subarea of memory the shared_ptr is pointing
     // to isn't destroyed while this shared_ptr exists.
     std::shared_ptr<void> sub_data( static_cast<uint8_t *>( data.get() ) + member->offset_,
-                                    [data]( void * ) { (void)data; } );
+                                    [data]( const void * ) { (void)data; } );
     if ( member->is_upper_bound_ ) {
       using BoundedArrayInit = ArrayInit<ArraySize::BOUNDED>;
       RBF2_TEMPLATE_CALL( BoundedArrayInit::initArrayMessage, member->type_id_, message, member,
@@ -255,8 +233,8 @@ void initValue( Message::SharedPtr &message, const MessageMemberIntrospection &m
     // Empty deleter with copy to data to make sure the subarea of memory the shared_ptr is pointing
     // to isn't destroyed while this shared_ptr exists.
     std::shared_ptr<void> sub_data( static_cast<uint8_t *>( data.get() ) + member->offset_,
-                                    [data]( void * ) { (void)data; } );
-    message = CompoundMessage::template make_shared( member, std::move( sub_data ) );
+                                    [data]( const void * ) { (void)data; } );
+    message = CompoundMessage::make_shared( member, std::move( sub_data ) );
   } else {
     RBF2_TEMPLATE_CALL_VALUE_TYPES( initValueMessage, member->type_id_, message, member, data );
   }
@@ -273,9 +251,7 @@ Message &CompoundMessage::operator[]( const std::string &key )
       return *values_[i];
     }
   }
-  throw std::out_of_range( "Invalid key! '" + key + "' is not in " +
-                           members_.value->message_namespace_ +
-                           "::" + members_.value->message_name_ + "." );
+  throw std::out_of_range( "Invalid key! '" + key + "' is not in " + name() + "." );
 }
 
 const Message &CompoundMessage::operator[]( const std::string &key ) const
@@ -288,9 +264,7 @@ const Message &CompoundMessage::operator[]( const std::string &key ) const
       return *values_[i];
     }
   }
-  throw std::out_of_range( "Invalid key! '" + key + "' is not in " +
-                           members_.value->message_namespace_ +
-                           "::" + members_.value->message_name_ + "." );
+  throw std::out_of_range( "Invalid key! '" + key + "' is not in " + name() + "." );
 }
 
 std::vector<Message::SharedPtr> CompoundMessage::values()
@@ -359,7 +333,7 @@ void CompoundMessage::onMoved()
     // Compound and array messages get a pointer to their exact memory location
     std::shared_ptr<void> sub_data( static_cast<uint8_t *>( data_.get() ) +
                                         members_->members_[i].offset_,
-                                    [data = this->data_]( void * ) { (void)data; } );
+                                    [data = this->data_]( const void * ) { (void)data; } );
     values_[i]->move( sub_data );
   }
 }

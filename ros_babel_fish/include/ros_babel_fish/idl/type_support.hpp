@@ -10,9 +10,9 @@
 #include <rosidl_typesupport_introspection_cpp/message_introspection.hpp>
 #include <rosidl_typesupport_introspection_cpp/service_introspection.hpp>
 
-#include <assert.h>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace ros_babel_fish
 {
@@ -35,6 +35,7 @@ struct MessageTypeSupport {
 };
 
 struct MessageMemberIntrospection {
+  MessageMemberIntrospection() = default;
   MessageMemberIntrospection( const rosidl_typesupport_introspection_cpp::MessageMember *member,
                               std::shared_ptr<const void> library )
       : library( std::move( library ) ), value( member )
@@ -43,8 +44,10 @@ struct MessageMemberIntrospection {
 
   const rosidl_typesupport_introspection_cpp::MessageMember *operator->() const { return value; }
 
+  bool isNull() const { return value == nullptr; }
+
   std::shared_ptr<const void> library;
-  const rosidl_typesupport_introspection_cpp::MessageMember *value;
+  const rosidl_typesupport_introspection_cpp::MessageMember *value = nullptr;
 };
 
 struct MessageMembersIntrospection {
@@ -70,19 +73,27 @@ struct MessageMembersIntrospection {
 
   const rosidl_typesupport_introspection_cpp::MessageMembers *operator->() const { return value; }
 
-  MessageMemberIntrospection getMember( size_t index ) const
-  {
-    assert( index < value->member_count_ );
-    return MessageMemberIntrospection( &value->members_[index], library );
-  }
+  MessageMemberIntrospection getMember( size_t index ) const;
+
+  MessageMemberIntrospection getMember( const std::string &name ) const;
+
+  bool containsMember( const std::string &name ) const;
+
+  std::vector<std::string> memberNames() const;
+
+  //! Get the name of the message represented by this introspection. E.g. "std_msgs/msg/Int32"
+  std::string getMessageName() const;
+
+  //! Get the type of the message represented by this introspection. E.g. "std_msgs::msg::Int32"
+  std::string getMessageDatatype() const;
 
   std::shared_ptr<const void> library;
   const rosidl_typesupport_introspection_cpp::MessageMembers *value;
 };
 
 struct ServiceTypeSupport {
-  typedef std::shared_ptr<ServiceTypeSupport> SharedPtr;
-  typedef std::shared_ptr<const ServiceTypeSupport> ConstSharedPtr;
+  using SharedPtr = std::shared_ptr<ServiceTypeSupport>;
+  using ConstSharedPtr = std::shared_ptr<const ServiceTypeSupport>;
 
   std::string name;
 
