@@ -38,6 +38,7 @@ set(SOURCES
   src/detail/babel_fish_subscription.cpp
   src/idl/providers/local_type_support_provider.cpp
   src/idl/serialization.cpp
+  src/idl/type_support.cpp
   src/idl/type_support_provider.cpp
   src/messages/array_message.cpp
   src/messages/compound_message.cpp
@@ -52,7 +53,7 @@ target_link_libraries(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
-  )
+)
 ament_target_dependencies(${PROJECT_NAME} ament_index_cpp rclcpp rclcpp_action rcpputils rosidl_runtime_cpp rosidl_typesupport_cpp rosidl_typesupport_introspection_cpp)
 
 

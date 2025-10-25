@@ -45,7 +45,7 @@ public:
 
   std::vector<std::string> keys() const;
 
-  std::string keyAt( size_t index );
+  std::string keyAt( size_t index ) const;
 
   uint32_t memberCount() const { return members_->member_count_; }
 
