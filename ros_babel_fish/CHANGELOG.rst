@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+3.25.11 (2025-11-11)
+--------------------
 * Added documentation and fixed tiny memory leak.
 * Added convenience methods to message introspection wrapper.
 * Fixed waiting indefinitely if topic is namespaced and added test case.
