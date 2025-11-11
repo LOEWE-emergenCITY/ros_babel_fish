@@ -2,6 +2,9 @@
 Changelog for package ros_babel_fish_test_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 3.25.2 (2025-02-07)
 -------------------
 * Refactored array size templating and improved compile time checks by moving checks to constexpr.

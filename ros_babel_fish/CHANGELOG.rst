@@ -2,6 +2,15 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Added documentation and fixed tiny memory leak.
+* Added convenience methods to message introspection wrapper.
+* Fixed waiting indefinitely if topic is namespaced and added test case.
+* Print warning when waiting for more than 3 seconds for topic.
+* Updated CMake project version.
+* Contributors: Stefan Fabian
+
 3.25.2 (2025-02-07)
 -------------------
 * Refactored array size templating and improved compile time checks by moving checks to constexpr.
