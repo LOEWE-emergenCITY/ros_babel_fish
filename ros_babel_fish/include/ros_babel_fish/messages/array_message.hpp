@@ -322,22 +322,35 @@ public:
   // Explicitly use Message operator to prevent hidden warnings
   using Message::operator[];
 
-  CompoundMessage &operator[]( size_t index ) { return getImplementation( index ); }
+  CompoundMessage &operator[]( size_t index ) { return *get( index ); }
 
-  const CompoundMessage &operator[]( size_t index ) const { return getImplementation( index ); }
+  const CompoundMessage &operator[]( size_t index ) const { return *get( index ); }
 
-  CompoundMessage &at( size_t index ) { return getImplementation( index ); }
+  //! Use at to obtain a reference to the message.
+  //! @throws std::out_of_range If index is out of range.
+  CompoundMessage &at( size_t index ) { return *get( index ); }
 
-  const CompoundMessage &at( size_t index ) const { return getImplementation( index ); }
+  const CompoundMessage &at( size_t index ) const { return *get( index ); }
+
+  //! Use get to obtain the shared ptr to the message.
+  //! @throws std::out_of_range If index is out of range.
+  CompoundMessage::SharedPtr get( size_t index )
+  {
+    ensureInitialized( index );
+    return values_[index];
+  }
+
+  CompoundMessage::ConstSharedPtr get( size_t index ) const
+  {
+    ensureInitialized( index );
+    return values_[index];
+  }
 
   /*!
    * @param index The index at which the array element is set/overwritten
    * @param value The value with which the array element is overwritten, has to be the same as the element type.
    */
-  virtual void assign( size_t index, const CompoundMessage &value )
-  {
-    getImplementation( index ) = value;
-  }
+  virtual void assign( size_t index, const CompoundMessage &value ) { *get( index ) = value; }
 
   //! Alias for _assign
   void replace( size_t index, const CompoundMessage &value ) { assign( index, value ); }
@@ -362,7 +375,7 @@ public:
   {
     size_t index = size();
     resize( index + 1 );
-    return getImplementation( index );
+    return *get( index );
   }
 
   void pop_back()
@@ -468,18 +481,6 @@ private:
       std::shared_ptr<void> data( p, [parent = data_]( void * ) { (void)parent; } );
       values_[index] = CompoundMessage::make_shared( member_, std::move( data ) );
     }
-  }
-
-  CompoundMessage &getImplementation( size_t index )
-  {
-    ensureInitialized( index );
-    return *values_[index];
-  }
-
-  const CompoundMessage &getImplementation( size_t index ) const
-  {
-    ensureInitialized( index );
-    return *values_[index];
   }
 
   void _assign( const ArrayMessageBase &other ) override
