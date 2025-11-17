@@ -54,7 +54,7 @@ std::string get_typesupport_library_path( const std::string &package_name,
   std::string package_prefix;
   try {
     package_prefix = ament_index_cpp::get_package_prefix( package_name );
-  } catch ( std::runtime_error &e ) {
+  } catch ( std::exception &e ) {
     throw TypeSupportException( e.what() );
   }
 
