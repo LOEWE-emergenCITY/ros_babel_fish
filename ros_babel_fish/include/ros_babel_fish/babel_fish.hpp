@@ -121,6 +121,8 @@ public:
    * @param type The type of the service, e.g., rcl_interfaces/srv/GetParameters
    * @param callback The callback that should be called when the service is called.
    * @return A pointer to the created service server.
+   *
+   * @throws BabelFishException If the topic is invalid or could not be created for any other reason.
    */
   template<typename CallbackT>
   BabelFishService::SharedPtr
@@ -145,6 +147,8 @@ public:
    * @param service_name The name under which the service server is registered.
    * @param type The type of the service, e.g., rcl_interfaces/srv/GetParameters
    * @return A service client that can be used to call the service.
+   *
+   * @throws BabelFishException If the topic is invalid or could not be created for any other reason.
    */
   BabelFishServiceClient::SharedPtr
   create_service_client( rclcpp::Node &node, const std::string &service_name, const std::string &type,
@@ -159,6 +163,8 @@ public:
    * @param handle_cancel Callback when a cancel request was received.
    * @param handle_accepted Callback when a goal was accepted. Should start executing the goal.
    * @return An action server that goals can be sent to for processing.
+   *
+   * @throws BabelFishException If the topic is invalid or could not be created for any other reason.
    */
   BabelFishActionServer::SharedPtr create_action_server(
       rclcpp::Node &node, const std::string &name, const std::string &type,
@@ -173,6 +179,8 @@ public:
    * @param name The name under which the action server is registered.
    * @param type The type of the action
    * @return An action client that can be used to send goals to the action server.
+   *
+   * @throws BabelFishException If the topic is invalid or could not be created for any other reason.
    */
   BabelFishActionClient::SharedPtr create_action_client(
       rclcpp::Node &node, const std::string &name, const std::string &type,
