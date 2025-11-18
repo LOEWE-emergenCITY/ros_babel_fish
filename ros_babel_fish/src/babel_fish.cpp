@@ -60,7 +60,7 @@ BabelFishSubscription::SharedPtr BabelFish::create_subscription(
         std::move( options ) );
     node.get_node_topics_interface()->add_subscription( subscription, std::move( group ) );
     return subscription;
-  } catch ( const std::runtime_error &ex ) {
+  } catch ( const std::exception &ex ) {
     throw BabelFishException( "Failed to create Subscription: " + std::string( ex.what() ) );
   }
 }
@@ -84,7 +84,7 @@ BabelFishSubscription::SharedPtr BabelFish::create_subscription(
 
     node.get_node_topics_interface()->add_subscription( subscription, std::move( group ) );
     return subscription;
-  } catch ( const std::runtime_error &ex ) {
+  } catch ( const std::exception &ex ) {
     throw BabelFishException( "Failed to create Subscription: " + std::string( ex.what() ) );
   }
 }
@@ -144,12 +144,15 @@ BabelFish::create_service_client( rclcpp::Node &node, const std::string &service
   }
   rcl_client_options_t options = rcl_client_get_default_options();
   options.qos = qos_profile;
-  auto result = BabelFishServiceClient::make_shared( node.get_node_base_interface().get(),
-                                                     node.get_node_graph_interface(), service_name,
-                                                     type_support, options );
-
-  node.get_node_services_interface()->add_client( result, std::move( group ) );
-  return result;
+  try {
+    auto result = BabelFishServiceClient::make_shared( node.get_node_base_interface().get(),
+                                                       node.get_node_graph_interface(),
+                                                       service_name, type_support, options );
+    node.get_node_services_interface()->add_client( result, std::move( group ) );
+    return result;
+  } catch ( const std::exception &ex ) {
+    throw BabelFishException( "Failed to create Service Client: " + std::string( ex.what() ) );
+  }
 }
 
 BabelFishActionServer::SharedPtr BabelFish::create_action_server(
@@ -191,14 +194,18 @@ BabelFishActionServer::SharedPtr BabelFish::create_action_server(
     }
     delete ptr;
   };
-  std::shared_ptr<BabelFishActionServer> server(
-      new BabelFishActionServer( node.get_node_base_interface(), node.get_node_clock_interface(),
-                                 node.get_node_logging_interface(), name, type_support, options,
-                                 std::move( handle_goal ), std::move( handle_cancel ),
-                                 std::move( handle_accepted ) ),
-      deleter );
-  node.get_node_waitables_interface()->add_waitable( server, std::move( group ) );
-  return server;
+  try {
+    std::shared_ptr<BabelFishActionServer> server(
+        new BabelFishActionServer( node.get_node_base_interface(), node.get_node_clock_interface(),
+                                   node.get_node_logging_interface(), name, type_support, options,
+                                   std::move( handle_goal ), std::move( handle_cancel ),
+                                   std::move( handle_accepted ) ),
+        deleter );
+    node.get_node_waitables_interface()->add_waitable( server, std::move( group ) );
+    return server;
+  } catch ( const std::exception &ex ) {
+    throw BabelFishException( "Failed to create Action Server: " + std::string( ex.what() ) );
+  }
 }
 
 BabelFishActionClient::SharedPtr
@@ -239,13 +246,17 @@ BabelFish::create_action_client( rclcpp::Node &node, const std::string &name,
     delete ptr;
   };
 
-  std::shared_ptr<BabelFishActionClient> action_client(
-      new BabelFishActionClient( node.get_node_base_interface(), node.get_node_graph_interface(),
-                                 node.get_node_logging_interface(), name, type_support, options ),
-      deleter );
+  try {
+    std::shared_ptr<BabelFishActionClient> action_client(
+        new BabelFishActionClient( node.get_node_base_interface(), node.get_node_graph_interface(),
+                                   node.get_node_logging_interface(), name, type_support, options ),
+        deleter );
 
-  node.get_node_waitables_interface()->add_waitable( action_client, std::move( group ) );
-  return action_client;
+    node.get_node_waitables_interface()->add_waitable( action_client, std::move( group ) );
+    return action_client;
+  } catch ( const std::exception &ex ) {
+    throw BabelFishException( "Failed to create Action Client: " + std::string( ex.what() ) );
+  }
 }
 
 CompoundMessage BabelFish::create_message( const std::string &type ) const
