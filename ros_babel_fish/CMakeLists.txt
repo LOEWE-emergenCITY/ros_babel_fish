@@ -49,12 +49,19 @@ set(SOURCES
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC RCLCPP_VERSION_MAJOR=${rclcpp_VERSION_MAJOR})
-target_link_libraries(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(${PROJECT_NAME} ament_index_cpp rclcpp rclcpp_action rcpputils rosidl_runtime_cpp rosidl_typesupport_cpp rosidl_typesupport_introspection_cpp)
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  ament_index_cpp::ament_index_cpp
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  rcpputils::rcpputils
+  rosidl_runtime_cpp::rosidl_runtime_cpp
+  rosidl_typesupport_cpp::rosidl_typesupport_cpp
+  rosidl_typesupport_introspection_cpp::rosidl_typesupport_introspection_cpp
+)
 
 
 # Examples
@@ -66,12 +73,11 @@ target_include_directories(any_publisher PRIVATE
 )
 
 add_executable(any_subscriber examples/any_subscriber.cpp)
-target_link_libraries(any_subscriber ${PROJECT_NAME})
+target_link_libraries(any_subscriber ${PROJECT_NAME} ${geometry_msgs_TARGETS})
 target_include_directories(any_subscriber PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(any_subscriber geometry_msgs)
 
 add_executable(troll_node examples/troll_node.cpp)
 target_link_libraries(troll_node ${PROJECT_NAME})
@@ -146,28 +152,20 @@ if (BUILD_TESTING)
   include_directories(include)
 
   ament_add_gtest(test_message test/message.cpp)
-  ament_target_dependencies(test_message geometry_msgs ros_babel_fish_test_msgs)
-  target_link_libraries(test_message ${PROJECT_NAME})
+  target_link_libraries(test_message ${PROJECT_NAME} ${geometry_msgs_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
 
   ament_add_gtest(test_message_decoding test/message_decoding.cpp)
-  ament_target_dependencies(test_message_decoding geometry_msgs ros_babel_fish_test_msgs)
-  target_link_libraries(test_message_decoding ${PROJECT_NAME})
-
+  target_link_libraries(test_message_decoding ${PROJECT_NAME} ${geometry_msgs_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
   ament_add_gtest(test_message_encoding test/message_encoding.cpp)
-  ament_target_dependencies(test_message_encoding geometry_msgs ros_babel_fish_test_msgs)
-  target_link_libraries(test_message_encoding ${PROJECT_NAME})
+  target_link_libraries(test_message_encoding ${PROJECT_NAME} ${geometry_msgs_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
 
   ament_add_gtest(test_service test/service.cpp)
-  ament_target_dependencies(test_service example_interfaces ros_babel_fish_test_msgs)
-  target_link_libraries(test_service ${PROJECT_NAME})
+  target_link_libraries(test_service ${PROJECT_NAME} ${example_interfaces_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
 
   ament_add_gtest(test_action_client test/action_client.cpp)
-  ament_target_dependencies(test_action_client example_interfaces ros_babel_fish_test_msgs)
-  target_link_libraries(test_action_client ${PROJECT_NAME})
-
+  target_link_libraries(test_action_client ${PROJECT_NAME} ${example_interfaces_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
   ament_add_gtest(test_action_server test/action_server.cpp)
-  ament_target_dependencies(test_action_server example_interfaces ros_babel_fish_test_msgs)
-  target_link_libraries(test_action_server ${PROJECT_NAME})
+  target_link_libraries(test_action_server ${PROJECT_NAME} ${example_interfaces_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
 endif ()
 
 # to run: catkin build ros_babel_fish --no-deps -DENABLE_COVERAGE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -v --catkin-make-args ros_babel_fish_coverage
@@ -186,8 +184,7 @@ find_package(benchmark QUIET)
 if (${benchmark_FOUND})
   find_package(geometry_msgs REQUIRED)
   add_executable(benchmark_message benchmark/message.cpp)
-  ament_target_dependencies(benchmark_message geometry_msgs)
-  target_link_libraries(benchmark_message ${PROJECT_NAME} benchmark)
+  target_link_libraries(benchmark_message ${PROJECT_NAME} ${geometry_msgs_TARGETS} benchmark)
   target_include_directories(benchmark_message PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
