@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.25.120 (2025-12-08)
+---------------------
 * Wrap exceptions when creating service or action client with invalid topic as BabelFishException.
 * Fixed ament package not found error not being caught and wrapped as TypeSupportException / BabelFishException.
 * Added a get method for CompoundArrayMessage to obtain element as shared_ptr.
