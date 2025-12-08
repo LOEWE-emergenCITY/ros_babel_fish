@@ -2,6 +2,17 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Wrap exceptions when creating service or action client with invalid topic as BabelFishException.
+* Fixed ament package not found error not being caught and wrapped as TypeSupportException / BabelFishException.
+* Added a get method for CompoundArrayMessage to obtain element as shared_ptr.
+* Added documentation and fixed tiny memory leak.
+* Added convenience methods to message introspection wrapper.
+* Fixed waiting indefinitely if topic is namespaced and added test case.
+* Print warning when waiting for more than 3 seconds for topic.
+* Contributors: Stefan Fabian
+
 0.25.2 (2025-02-07)
 -------------------
 * Updated docs on template call array bounded / fixed length.
