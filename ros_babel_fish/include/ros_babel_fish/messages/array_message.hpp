@@ -121,9 +121,6 @@ public:
 
   ConstReturnType operator[]( size_t index ) const
   {
-    // Using size 1 as placeholder since actual bounds checking is done separately via size()
-    // and this array type is only used for reinterpret_cast, never actually instantiated.
-    // Note: Using large values (e.g. 987654321000) causes MSVC to fail compilation.
     using Container = typename std::conditional_t<FIXED_LENGTH, std::array<T, 1>, std::vector<T>>;
     if ( member_->get_function == nullptr ) {
       if ( index >= size() )
