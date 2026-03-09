@@ -51,15 +51,15 @@ std::string get_typesupport_library_path( const std::string &package_name,
   dynamic_library_folder = "/lib/";
 #endif
 
-  std::string package_prefix;
+  std::filesystem::path package_prefix;
   try {
-    package_prefix = ament_index_cpp::get_package_prefix( package_name );
+    ament_index_cpp::get_package_prefix( package_name, package_prefix );
   } catch ( std::exception &e ) {
     throw TypeSupportException( e.what() );
   }
 
-  auto library_path = package_prefix + dynamic_library_folder + filename_prefix + package_name +
-                      "__" + typesupport_identifier + filename_extension;
+  auto library_path = package_prefix.string() + dynamic_library_folder + filename_prefix +
+                      package_name + "__" + typesupport_identifier + filename_extension;
   return library_path;
 }
 
