@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+3.26.31 (2026-03-10)
+--------------------
 * Fixed rolling deprecation warnings.
 * Contributors: Stefan Fabian
 
