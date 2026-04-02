@@ -59,50 +59,22 @@ template<>
 inline std::wstring element_from_json<std::wstring>( const json &j )
 { return utf8_to_wstring( j.get_ref<const std::string &>() ); }
 
+template<>
+inline bool element_from_json<bool>( const json &j )
+{
+  if ( j.is_boolean() )
+    return j.get<bool>();
+  return j.get<int>() != 0;
+}
+
 // =============================================================================
 // Value message serialization
 // =============================================================================
 
 inline json value_message_to_json( const ros_babel_fish::Message &msg )
 {
-  using namespace ros_babel_fish;
-  switch ( msg.type() ) {
-  case MessageTypes::Bool:
-    return element_to_json( msg.value<bool>() );
-  case MessageTypes::Octet:
-  case MessageTypes::UInt8:
-    return element_to_json( msg.value<uint8_t>() );
-  case MessageTypes::UInt16:
-    return element_to_json( msg.value<uint16_t>() );
-  case MessageTypes::UInt32:
-    return element_to_json( msg.value<uint32_t>() );
-  case MessageTypes::UInt64:
-    return element_to_json( msg.value<uint64_t>() );
-  case MessageTypes::Int8:
-    return element_to_json( msg.value<int8_t>() );
-  case MessageTypes::Int16:
-    return element_to_json( msg.value<int16_t>() );
-  case MessageTypes::Int32:
-    return element_to_json( msg.value<int32_t>() );
-  case MessageTypes::Int64:
-    return element_to_json( msg.value<int64_t>() );
-  case MessageTypes::Float:
-    return element_to_json( msg.value<float>() );
-  case MessageTypes::Double:
-    return element_to_json( msg.value<double>() );
-  case MessageTypes::LongDouble:
-    return element_to_json( msg.value<long double>() );
-  case MessageTypes::Char:
-    return element_to_json( msg.value<uint8_t>() );
-  case MessageTypes::WChar:
-    return element_to_json( msg.value<char16_t>() );
-  case MessageTypes::String:
-    return element_to_json( msg.value<std::string>() );
-  case MessageTypes::WString:
-    return element_to_json( msg.value<std::wstring>() );
-  default:
-    return nullptr;
-  }
+  return ros_babel_fish::invoke_for_value_message(
+      msg, []( const auto &typed ) { return element_to_json( typed.getValue() ); } );
 }
 
 // =============================================================================
@@ -111,7 +83,7 @@ inline json value_message_to_json( const ros_babel_fish::Message &msg )
 
 inline json array_message_to_json( const ros_babel_fish::ArrayMessageBase &array )
 {
-  return ros_babel_fish::invoke_for_array_message( array, []( const auto &typed ) -> json {
+  return ros_babel_fish::invoke_for_array_message( array, []( const auto &typed ) {
     json arr = json::array();
     for ( size_t i = 0; i < typed.size(); ++i ) arr.push_back( element_to_json( typed[i] ) );
     return arr;
@@ -124,64 +96,11 @@ inline json array_message_to_json( const ros_babel_fish::ArrayMessageBase &array
 
 inline void set_value_from_json( const json &j, ros_babel_fish::Message &msg )
 {
-  using namespace ros_babel_fish;
   try {
-    switch ( msg.type() ) {
-    case MessageTypes::Bool:
-      if ( j.is_boolean() )
-        msg = j.get<bool>();
-      else
-        msg = j.get<int>() != 0;
-      break;
-    case MessageTypes::Octet:
-    case MessageTypes::UInt8:
-      msg = j.get<uint8_t>();
-      break;
-    case MessageTypes::UInt16:
-      msg = j.get<uint16_t>();
-      break;
-    case MessageTypes::UInt32:
-      msg = j.get<uint32_t>();
-      break;
-    case MessageTypes::UInt64:
-      msg = j.get<uint64_t>();
-      break;
-    case MessageTypes::Int8:
-      msg = j.get<int8_t>();
-      break;
-    case MessageTypes::Int16:
-      msg = j.get<int16_t>();
-      break;
-    case MessageTypes::Int32:
-      msg = j.get<int32_t>();
-      break;
-    case MessageTypes::Int64:
-      msg = j.get<int64_t>();
-      break;
-    case MessageTypes::Float:
-      msg = j.get<float>();
-      break;
-    case MessageTypes::Double:
-      msg = j.get<double>();
-      break;
-    case MessageTypes::LongDouble:
-      msg = element_from_json<long double>( j );
-      break;
-    case MessageTypes::Char:
-      msg = j.get<uint8_t>();
-      break;
-    case MessageTypes::WChar:
-      msg = element_from_json<char16_t>( j );
-      break;
-    case MessageTypes::String:
-      msg = j.get<std::string>();
-      break;
-    case MessageTypes::WString:
-      msg = element_from_json<std::wstring>( j );
-      break;
-    default:
-      break;
-    }
+    ros_babel_fish::invoke_for_value_message( msg, [&j]( auto &typed ) {
+      using T = std::decay_t<decltype( typed.getValue() )>;
+      typed.setValue( element_from_json<T>( j ) );
+    } );
   } catch ( const nlohmann::json::exception &e ) {
     throw SerializationException( std::string( e.what() ) );
   }
@@ -196,51 +115,59 @@ void json_to_message( const json &j, ros_babel_fish::CompoundMessage &message );
 // =============================================================================
 
 template<BoundsCheckBehavior Behavior>
-inline void set_array_from_json( const json &j, ros_babel_fish::ArrayMessageBase &array )
-{
-  ros_babel_fish::invoke_for_array_message( array, [&]( auto &typed ) {
-    using ArrayT = std::remove_cv_t<std::remove_reference_t<decltype( typed )>>;
-
-    if ( !typed.isFixedSize() ) {
+struct ArraySetters {
+  template<ros_babel_fish::ArraySize ArraySize, typename ArrayType>
+  void resize_array( ArrayType &typed, const json &j )
+  {
+    if constexpr ( ArraySize == ros_babel_fish::ArraySize::BOUNDED ||
+                   ArraySize == ros_babel_fish::ArraySize::FIXED_LENGTH ) {
       if constexpr ( Behavior == BoundsCheckBehavior::Throw ) {
-        if ( typed.isBounded() && j.size() > typed.maxSize() )
+        if ( j.size() > typed.maxSize() )
           throw SerializationException( "array has " + std::to_string( j.size() ) +
                                         " elements but max is " + std::to_string( typed.maxSize() ) );
       }
-      typed.resize( typed.isBounded() ? std::min( j.size(), typed.maxSize() ) : j.size() );
     }
-    size_t count = std::min( j.size(), typed.size() );
+    if constexpr ( ArraySize == ros_babel_fish::ArraySize::DYNAMIC ) {
+      typed.resize( j.size() );
+    } else if constexpr ( ArraySize == ros_babel_fish::ArraySize::BOUNDED ) {
+      typed.resize( std::min( j.size(), typed.maxSize() ) );
+    }
+  }
 
-    if constexpr ( is_compound_array_message<ArrayT>::value ) {
-      for ( size_t i = 0; i < count; ++i ) {
-        if ( j[i].is_null() )
-          continue;
-        try {
-          json_to_message<Behavior>( j[i], typed[i] );
-        } catch ( SerializationException &e ) {
-          e.prepend_index( i );
-          throw;
-        }
-      }
-    } else {
-      using T = typename array_element_type<ArrayT>::type;
-      for ( size_t i = 0; i < count; ++i ) {
-        if ( j[i].is_null() )
-          continue;
-        try {
-          typed.assign( i, element_from_json<T>( j[i] ) );
-        } catch ( const nlohmann::json::exception &e ) {
-          SerializationException ex( e.what() );
-          ex.prepend_index( i );
-          throw ex;
-        } catch ( SerializationException &e ) {
-          e.prepend_index( i );
-          throw;
-        }
+  template<ros_babel_fish::ArraySize ArraySize>
+  inline void operator()( ros_babel_fish::CompoundArrayMessage_<ArraySize> &array, const json &j )
+  {
+    resize_array<ArraySize>( array, j );
+    for ( size_t i = 0; i < array.size(); ++i ) {
+      if ( j[i].is_null() )
+        continue;
+      try {
+        json_to_message<Behavior>( j[i], array[i] );
+      } catch ( SerializationException &e ) {
+        e.prepend_index( i );
+        throw;
       }
     }
-  } );
-}
+  }
+
+  template<ros_babel_fish::ArraySize ArraySize, typename ArrayT>
+  inline void operator()( ros_babel_fish::ArrayMessage_<ArrayT, ArraySize> &array, const json &j )
+  {
+    resize_array<ArraySize>( array, j );
+    for ( size_t i = 0; i < array.size(); ++i ) {
+      if ( j[i].is_null() )
+        continue;
+      try {
+        array.assign( i, element_from_json<ArrayT>( j[i] ) );
+      } catch ( const nlohmann::json::exception &e ) {
+        throw SerializationException( e.what() ).prepend_index( i );
+      } catch ( SerializationException &e ) {
+        e.prepend_index( i );
+        throw;
+      }
+    }
+  }
+};
 
 // =============================================================================
 // Compound message deserialization
@@ -284,7 +211,9 @@ void json_to_message( const json &j, ros_babel_fish::CompoundMessage &message )
         if ( !child_json.is_array() )
           throw SerializationException( "expected JSON array, got " +
                                         std::string( child_json.type_name() ) );
-        set_array_from_json<Behavior>( child_json, child.as<ArrayMessageBase>() );
+
+        ros_babel_fish::invoke_for_array_message( child.as<ArrayMessageBase>(),
+                                                  ArraySetters<Behavior>{}, child_json );
       } else {
         set_value_from_json( child_json, child );
       }

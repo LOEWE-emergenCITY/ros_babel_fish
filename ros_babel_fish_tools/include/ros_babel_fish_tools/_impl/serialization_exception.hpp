@@ -20,11 +20,13 @@ namespace _impl
  * At the public API boundary this is caught and converted to a BabelFishException.
  */
 struct SerializationException : ros_babel_fish::BabelFishException {
-  std::string path;
-  std::string leaf_msg;
-
   explicit SerializationException( std::string msg )
       : BabelFishException( msg ), leaf_msg( std::move( msg ) )
+  {
+  }
+
+  SerializationException( const SerializationException &other ) noexcept
+      : BabelFishException( other ), path( other.path ), leaf_msg( other.leaf_msg )
   {
   }
 
@@ -34,16 +36,22 @@ struct SerializationException : ros_babel_fish::BabelFishException {
     return full_.c_str();
   }
 
-  void prepend( const std::string &segment )
-  { path = path.empty() ? segment : segment + "." + path; }
+  SerializationException &prepend( const std::string &segment )
+  {
+    path = path.empty() ? segment : segment + "." + path;
+    return *this;
+  }
 
-  void prepend_index( size_t i )
+  SerializationException &prepend_index( size_t i )
   {
     std::string idx = "[" + std::to_string( i ) + "]";
     path = path.empty() ? idx : idx + "." + path;
+    return *this;
   }
 
 private:
+  std::string path;
+  std::string leaf_msg;
   mutable std::string full_;
 };
 

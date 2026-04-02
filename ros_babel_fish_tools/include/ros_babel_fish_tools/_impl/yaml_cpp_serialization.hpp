@@ -92,44 +92,8 @@ inline std::wstring element_from_yaml<std::wstring>( const YAML::Node &n )
 
 inline YAML::Node value_message_to_yaml( const ros_babel_fish::Message &msg )
 {
-  using namespace ros_babel_fish;
-  switch ( msg.type() ) {
-  case MessageTypes::Bool:
-    return element_to_yaml( msg.value<bool>() );
-  case MessageTypes::Octet:
-  case MessageTypes::UInt8:
-    return element_to_yaml( msg.value<uint8_t>() );
-  case MessageTypes::UInt16:
-    return element_to_yaml( msg.value<uint16_t>() );
-  case MessageTypes::UInt32:
-    return element_to_yaml( msg.value<uint32_t>() );
-  case MessageTypes::UInt64:
-    return element_to_yaml( msg.value<uint64_t>() );
-  case MessageTypes::Int8:
-    return element_to_yaml( msg.value<int8_t>() );
-  case MessageTypes::Int16:
-    return element_to_yaml( msg.value<int16_t>() );
-  case MessageTypes::Int32:
-    return element_to_yaml( msg.value<int32_t>() );
-  case MessageTypes::Int64:
-    return element_to_yaml( msg.value<int64_t>() );
-  case MessageTypes::Float:
-    return element_to_yaml( msg.value<float>() );
-  case MessageTypes::Double:
-    return element_to_yaml( msg.value<double>() );
-  case MessageTypes::LongDouble:
-    return element_to_yaml( msg.value<long double>() );
-  case MessageTypes::Char:
-    return element_to_yaml( msg.value<uint8_t>() );
-  case MessageTypes::WChar:
-    return element_to_yaml( msg.value<char16_t>() );
-  case MessageTypes::String:
-    return element_to_yaml( msg.value<std::string>() );
-  case MessageTypes::WString:
-    return element_to_yaml( msg.value<std::wstring>() );
-  default:
-    return YAML::Node();
-  }
+  return ros_babel_fish::invoke_for_value_message(
+      msg, []( const auto &typed ) { return element_to_yaml( typed.getValue() ); } );
 }
 
 // =============================================================================
@@ -151,61 +115,11 @@ inline YAML::Node array_message_to_yaml( const ros_babel_fish::ArrayMessageBase 
 
 inline void set_value_from_yaml( const YAML::Node &node, ros_babel_fish::Message &msg )
 {
-  using namespace ros_babel_fish;
   try {
-    switch ( msg.type() ) {
-    case MessageTypes::Bool:
-      msg = node.as<bool>();
-      break;
-    case MessageTypes::Octet:
-    case MessageTypes::UInt8:
-      msg = element_from_yaml<uint8_t>( node );
-      break;
-    case MessageTypes::UInt16:
-      msg = node.as<uint16_t>();
-      break;
-    case MessageTypes::UInt32:
-      msg = node.as<uint32_t>();
-      break;
-    case MessageTypes::UInt64:
-      msg = node.as<uint64_t>();
-      break;
-    case MessageTypes::Int8:
-      msg = element_from_yaml<int8_t>( node );
-      break;
-    case MessageTypes::Int16:
-      msg = node.as<int16_t>();
-      break;
-    case MessageTypes::Int32:
-      msg = node.as<int32_t>();
-      break;
-    case MessageTypes::Int64:
-      msg = node.as<int64_t>();
-      break;
-    case MessageTypes::Float:
-      msg = node.as<float>();
-      break;
-    case MessageTypes::Double:
-      msg = node.as<double>();
-      break;
-    case MessageTypes::LongDouble:
-      msg = element_from_yaml<long double>( node );
-      break;
-    case MessageTypes::Char:
-      msg = static_cast<unsigned char>( node.as<uint16_t>() );
-      break;
-    case MessageTypes::WChar:
-      msg = element_from_yaml<char16_t>( node );
-      break;
-    case MessageTypes::String:
-      msg = node.as<std::string>();
-      break;
-    case MessageTypes::WString:
-      msg = element_from_yaml<std::wstring>( node );
-      break;
-    default:
-      break;
-    }
+    ros_babel_fish::invoke_for_value_message( msg, [&node]( auto &typed ) {
+      using T = std::decay_t<decltype( typed.getValue() )>;
+      typed.setValue( element_from_yaml<T>( node ) );
+    } );
   } catch ( const YAML::Exception &e ) {
     throw SerializationException( std::string( e.what() ) );
   }
@@ -220,52 +134,63 @@ void yaml_to_message( const YAML::Node &node, ros_babel_fish::CompoundMessage &m
 // =============================================================================
 
 template<BoundsCheckBehavior Behavior>
-inline void set_array_from_yaml( const YAML::Node &node, ros_babel_fish::ArrayMessageBase &array )
-{
-  ros_babel_fish::invoke_for_array_message( array, [&]( auto &typed ) {
-    using ArrayT = std::remove_cv_t<std::remove_reference_t<decltype( typed )>>;
-
-    if ( !typed.isFixedSize() ) {
+struct YamlArraySetters {
+  template<ros_babel_fish::ArraySize ArraySize, typename ArrayType>
+  void resize_array( ArrayType &typed, const YAML::Node &node )
+  {
+    if constexpr ( ArraySize == ros_babel_fish::ArraySize::BOUNDED ||
+                   ArraySize == ros_babel_fish::ArraySize::FIXED_LENGTH ) {
       if constexpr ( Behavior == BoundsCheckBehavior::Throw ) {
-        if ( typed.isBounded() && node.size() > typed.maxSize() )
+        if ( node.size() > typed.maxSize() )
           throw SerializationException( "array has " + std::to_string( node.size() ) +
                                         " elements but max is " + std::to_string( typed.maxSize() ) );
       }
-      typed.resize( typed.isBounded() ? std::min( node.size(), typed.maxSize() ) : node.size() );
     }
-    size_t count = std::min( node.size(), typed.size() );
+    if constexpr ( ArraySize == ros_babel_fish::ArraySize::DYNAMIC ) {
+      typed.resize( node.size() );
+    } else if constexpr ( ArraySize == ros_babel_fish::ArraySize::BOUNDED ) {
+      typed.resize( std::min( node.size(), typed.maxSize() ) );
+    }
+  }
 
+  template<ros_babel_fish::ArraySize ArraySize>
+  void operator()( ros_babel_fish::CompoundArrayMessage_<ArraySize> &array, const YAML::Node &node )
+  {
+    resize_array<ArraySize>( array, node );
+    size_t count = std::min( node.size(), array.size() );
     auto it = node.begin();
-    if constexpr ( is_compound_array_message<ArrayT>::value ) {
-      for ( size_t i = 0; i < count; ++i, ++it ) {
-        if ( it->IsNull() )
-          continue;
-        try {
-          yaml_to_message<Behavior>( *it, typed[i] );
-        } catch ( SerializationException &e ) {
-          e.prepend_index( i );
-          throw;
-        }
-      }
-    } else {
-      using T = typename array_element_type<ArrayT>::type;
-      for ( size_t i = 0; i < count; ++i, ++it ) {
-        if ( it->IsNull() )
-          continue;
-        try {
-          typed.assign( i, element_from_yaml<T>( *it ) );
-        } catch ( const YAML::Exception &e ) {
-          SerializationException ex( e.what() );
-          ex.prepend_index( i );
-          throw ex;
-        } catch ( SerializationException &e ) {
-          e.prepend_index( i );
-          throw;
-        }
+    for ( size_t i = 0; i < count; ++i, ++it ) {
+      if ( it->IsNull() )
+        continue;
+      try {
+        yaml_to_message<Behavior>( *it, array[i] );
+      } catch ( SerializationException &e ) {
+        e.prepend_index( i );
+        throw;
       }
     }
-  } );
-}
+  }
+
+  template<ros_babel_fish::ArraySize ArraySize, typename ArrayT>
+  void operator()( ros_babel_fish::ArrayMessage_<ArrayT, ArraySize> &array, const YAML::Node &node )
+  {
+    resize_array<ArraySize>( array, node );
+    size_t count = std::min( node.size(), array.size() );
+    auto it = node.begin();
+    for ( size_t i = 0; i < count; ++i, ++it ) {
+      if ( it->IsNull() )
+        continue;
+      try {
+        array.assign( i, element_from_yaml<ArrayT>( *it ) );
+      } catch ( const YAML::Exception &e ) {
+        throw SerializationException( e.what() ).prepend_index( i );
+      } catch ( SerializationException &e ) {
+        e.prepend_index( i );
+        throw;
+      }
+    }
+  }
+};
 
 // =============================================================================
 // Compound message deserialization
@@ -308,7 +233,9 @@ void yaml_to_message( const YAML::Node &node, ros_babel_fish::CompoundMessage &m
       } else if ( child.type() == MessageTypes::Array ) {
         if ( !child_node.IsSequence() )
           throw SerializationException( "expected YAML sequence" );
-        set_array_from_yaml<Behavior>( child_node, child.as<ArrayMessageBase>() );
+
+        ros_babel_fish::invoke_for_array_message( child.as<ArrayMessageBase>(),
+                                                  YamlArraySetters<Behavior>{}, child_node );
       } else {
         set_value_from_yaml( child_node, child );
       }

@@ -59,12 +59,10 @@ if(BUILD_TESTING)
   find_package(ros_babel_fish_test_msgs REQUIRED)
 
   ament_add_gtest(test_nlohmann_json_serialization test/nlohmann_json_serialization.cpp)
-  target_link_libraries(test_nlohmann_json_serialization ${PROJECT_NAME})
-  ament_target_dependencies(test_nlohmann_json_serialization geometry_msgs std_msgs ros_babel_fish_test_msgs ros_babel_fish)
+  target_link_libraries(test_nlohmann_json_serialization ${PROJECT_NAME} ${geometry_msgs_TARGETS} ${std_msgs_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
 
   ament_add_gtest(test_yaml_cpp_serialization test/yaml_cpp_serialization.cpp)
-  target_link_libraries(test_yaml_cpp_serialization ${PROJECT_NAME} yaml-cpp)
-  ament_target_dependencies(test_yaml_cpp_serialization geometry_msgs std_msgs ros_babel_fish_test_msgs ros_babel_fish yaml_cpp_vendor)
+  target_link_libraries(test_yaml_cpp_serialization ${PROJECT_NAME} ${geometry_msgs_TARGETS} ${std_msgs_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
 endif()
 
 ament_package()
