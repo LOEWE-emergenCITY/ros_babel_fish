@@ -2,3 +2,4 @@
 .vscode/
 cmake-build-debug/
 cmake-build-release/
+_codeql_detected_source_root

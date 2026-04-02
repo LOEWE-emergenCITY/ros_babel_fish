@@ -96,8 +96,10 @@ public:
   typename std::enable_if_t<FIXED_LENGTH || !std::is_same_v<ENABLED, bool>, Reference>
   operator[]( size_t index )
   {
-    using Container =
-        typename std::conditional_t<FIXED_LENGTH, std::array<T, 987654321000>, std::vector<T>>;
+    // Using size 1 as placeholder since actual bounds checking is done separately via size()
+    // and this array type is only used for reinterpret_cast, never actually instantiated.
+    // Note: Using large values (e.g. 987654321000) causes MSVC to fail compilation.
+    using Container = typename std::conditional_t<FIXED_LENGTH, std::array<T, 1>, std::vector<T>>;
     if ( member_->get_function == nullptr ) {
       if ( index >= size() )
         throw std::out_of_range( "Index was out of range of array!" );
@@ -119,8 +121,7 @@ public:
 
   ConstReturnType operator[]( size_t index ) const
   {
-    using Container =
-        typename std::conditional_t<FIXED_LENGTH, std::array<T, 987654321000>, std::vector<T>>;
+    using Container = typename std::conditional_t<FIXED_LENGTH, std::array<T, 1>, std::vector<T>>;
     if ( member_->get_function == nullptr ) {
       if ( index >= size() )
         throw std::out_of_range( "Index was out of range of array!" );
