@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ros_babel_fish_tools</name>
+  <version>0.1.0</version>
+  <description>
+    Tooling for ROS 2 built on ros_babel_fish.
+    Provides header-only JSON and YAML serialization for dynamic messages and a CLI tool to echo topics.
+  </description>
+
+  <maintainer email="ros_babel_fish@stefanfabian.me">Stefan Fabian</maintainer>
+  <license>MIT</license>
+
+  <url type="website">https://github.com/StefanFabian/ros_babel_fish</url>
+  <url type="repository">https://github.com/StefanFabian/ros_babel_fish</url>
+  <url type="bugtracker">https://github.com/StefanFabian/ros_babel_fish/issues</url>
+
+  <author email="ros_babel_fish@stefanfabian.me">Stefan Fabian</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>ros_babel_fish</depend>
+  <depend>yaml_cpp_vendor</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>geometry_msgs</test_depend>
+  <test_depend>std_msgs</test_depend>
+  <test_depend>ros_babel_fish_test_msgs</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
