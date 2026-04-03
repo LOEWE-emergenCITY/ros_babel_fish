@@ -151,28 +151,28 @@ void yaml_to_message( const YAML::Node &node, ros_babel_fish::CompoundMessage &m
 
 template<BoundsCheckBehavior Behavior>
 struct YamlArraySetters {
-  template<ros_babel_fish::ArraySize ArraySize, typename ArrayType>
+  template<bool BOUNDED, bool FIXED_LENGTH, typename ArrayType>
   void resize_array( ArrayType &typed, const YAML::Node &node )
   {
-    if constexpr ( ArraySize == ros_babel_fish::ArraySize::BOUNDED ||
-                   ArraySize == ros_babel_fish::ArraySize::FIXED_LENGTH ) {
+    if constexpr ( BOUNDED || FIXED_LENGTH ) {
       if constexpr ( Behavior == BoundsCheckBehavior::Throw ) {
         if ( node.size() > typed.maxSize() )
           throw SerializationException( "array has " + std::to_string( node.size() ) +
                                         " elements but max is " + std::to_string( typed.maxSize() ) );
       }
     }
-    if constexpr ( ArraySize == ros_babel_fish::ArraySize::DYNAMIC ) {
+    if constexpr ( !BOUNDED && !FIXED_LENGTH ) {
       typed.resize( node.size() );
-    } else if constexpr ( ArraySize == ros_babel_fish::ArraySize::BOUNDED ) {
+    } else if constexpr ( BOUNDED ) {
       typed.resize( std::min( node.size(), typed.maxSize() ) );
     }
   }
 
-  template<ros_babel_fish::ArraySize ArraySize>
-  void operator()( ros_babel_fish::CompoundArrayMessage_<ArraySize> &array, const YAML::Node &node )
+  template<bool BOUNDED, bool FIXED_LENGTH>
+  void operator()( ros_babel_fish::CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> &array,
+                   const YAML::Node &node )
   {
-    resize_array<ArraySize>( array, node );
+    resize_array<BOUNDED, FIXED_LENGTH>( array, node );
     size_t count = std::min( node.size(), array.size() );
     auto it = node.begin();
     for ( size_t i = 0; i < count; ++i, ++it ) {
@@ -187,10 +187,11 @@ struct YamlArraySetters {
     }
   }
 
-  template<ros_babel_fish::ArraySize ArraySize, typename ArrayT>
-  void operator()( ros_babel_fish::ArrayMessage_<ArrayT, ArraySize> &array, const YAML::Node &node )
+  template<typename ArrayT, bool BOUNDED, bool FIXED_LENGTH>
+  void operator()( ros_babel_fish::ArrayMessage_<ArrayT, BOUNDED, FIXED_LENGTH> &array,
+                   const YAML::Node &node )
   {
-    resize_array<ArraySize>( array, node );
+    resize_array<BOUNDED, FIXED_LENGTH>( array, node );
     size_t count = std::min( node.size(), array.size() );
     auto it = node.begin();
     for ( size_t i = 0; i < count; ++i, ++it ) {

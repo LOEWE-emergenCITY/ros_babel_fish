@@ -128,28 +128,28 @@ void json_to_message( const json &j, ros_babel_fish::CompoundMessage &message );
 
 template<BoundsCheckBehavior Behavior>
 struct ArraySetters {
-  template<ros_babel_fish::ArraySize ArraySize, typename ArrayType>
+  template<bool BOUNDED, bool FIXED_LENGTH, typename ArrayType>
   void resize_array( ArrayType &typed, const json &j )
   {
-    if constexpr ( ArraySize == ros_babel_fish::ArraySize::BOUNDED ||
-                   ArraySize == ros_babel_fish::ArraySize::FIXED_LENGTH ) {
+    if constexpr ( BOUNDED || FIXED_LENGTH ) {
       if constexpr ( Behavior == BoundsCheckBehavior::Throw ) {
         if ( j.size() > typed.maxSize() )
           throw SerializationException( "array has " + std::to_string( j.size() ) +
                                         " elements but max is " + std::to_string( typed.maxSize() ) );
       }
     }
-    if constexpr ( ArraySize == ros_babel_fish::ArraySize::DYNAMIC ) {
+    if constexpr ( !BOUNDED && !FIXED_LENGTH ) {
       typed.resize( j.size() );
-    } else if constexpr ( ArraySize == ros_babel_fish::ArraySize::BOUNDED ) {
+    } else if constexpr ( BOUNDED ) {
       typed.resize( std::min( j.size(), typed.maxSize() ) );
     }
   }
 
-  template<ros_babel_fish::ArraySize ArraySize>
-  inline void operator()( ros_babel_fish::CompoundArrayMessage_<ArraySize> &array, const json &j )
+  template<bool BOUNDED, bool FIXED_LENGTH>
+  inline void operator()( ros_babel_fish::CompoundArrayMessage_<BOUNDED, FIXED_LENGTH> &array,
+                          const json &j )
   {
-    resize_array<ArraySize>( array, j );
+    resize_array<BOUNDED, FIXED_LENGTH>( array, j );
     for ( size_t i = 0; i < array.size(); ++i ) {
       if ( j[i].is_null() )
         continue;
@@ -162,10 +162,11 @@ struct ArraySetters {
     }
   }
 
-  template<ros_babel_fish::ArraySize ArraySize, typename ArrayT>
-  inline void operator()( ros_babel_fish::ArrayMessage_<ArrayT, ArraySize> &array, const json &j )
+  template<typename ArrayT, bool BOUNDED, bool FIXED_LENGTH>
+  inline void operator()( ros_babel_fish::ArrayMessage_<ArrayT, BOUNDED, FIXED_LENGTH> &array,
+                          const json &j )
   {
-    resize_array<ArraySize>( array, j );
+    resize_array<BOUNDED, FIXED_LENGTH>( array, j );
     for ( size_t i = 0; i < array.size(); ++i ) {
       if ( j[i].is_null() )
         continue;
