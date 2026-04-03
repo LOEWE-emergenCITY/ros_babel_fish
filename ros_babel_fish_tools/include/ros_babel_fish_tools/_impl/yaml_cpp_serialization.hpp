@@ -29,22 +29,30 @@ namespace _impl
 
 template<typename T>
 YAML::Node element_to_yaml( T v )
-{ return YAML::Node( v ); }
+{
+  return YAML::Node( v );
+}
 
 inline YAML::Node element_to_yaml( uint8_t v ) { return YAML::Node( static_cast<uint16_t>( v ) ); }
 
 inline YAML::Node element_to_yaml( int8_t v ) { return YAML::Node( static_cast<int16_t>( v ) ); }
 
 inline YAML::Node element_to_yaml( long double v )
-{ return YAML::Node( static_cast<double>( v ) ); }
+{
+  return YAML::Node( static_cast<double>( v ) );
+}
 
 inline YAML::Node element_to_yaml( char16_t v ) { return YAML::Node( static_cast<uint16_t>( v ) ); }
 
 inline YAML::Node element_to_yaml( const std::wstring &v )
-{ return YAML::Node( wstring_to_utf8( v ) ); }
+{
+  return YAML::Node( wstring_to_utf8( v ) );
+}
 
 inline YAML::Node element_to_yaml( const ros_babel_fish::CompoundMessage &v )
-{ return compound_message_to_yaml( v ); }
+{
+  return compound_message_to_yaml( v );
+}
 
 // =============================================================================
 // Deserialization helpers: element_from_yaml
@@ -53,7 +61,9 @@ inline YAML::Node element_to_yaml( const ros_babel_fish::CompoundMessage &v )
 
 template<typename T>
 T element_from_yaml( const YAML::Node &n )
-{ return n.as<T>(); }
+{
+  return n.as<T>();
+}
 
 template<>
 inline uint8_t element_from_yaml<uint8_t>( const YAML::Node &n )
@@ -76,15 +86,21 @@ inline int8_t element_from_yaml<int8_t>( const YAML::Node &n )
 
 template<>
 inline long double element_from_yaml<long double>( const YAML::Node &n )
-{ return static_cast<long double>( n.as<double>() ); }
+{
+  return static_cast<long double>( n.as<double>() );
+}
 
 template<>
 inline char16_t element_from_yaml<char16_t>( const YAML::Node &n )
-{ return static_cast<char16_t>( n.as<uint16_t>() ); }
+{
+  return static_cast<char16_t>( n.as<uint16_t>() );
+}
 
 template<>
 inline std::wstring element_from_yaml<std::wstring>( const YAML::Node &n )
-{ return utf8_to_wstring( n.as<std::string>() ); }
+{
+  return utf8_to_wstring( n.as<std::string>() );
+}
 
 // =============================================================================
 // Value message serialization

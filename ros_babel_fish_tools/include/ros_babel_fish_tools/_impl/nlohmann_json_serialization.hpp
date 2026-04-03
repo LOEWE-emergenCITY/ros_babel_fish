@@ -28,7 +28,9 @@ namespace _impl
 
 template<typename T>
 json element_to_json( T v )
-{ return v; }
+{
+  return v;
+}
 
 inline json element_to_json( long double v ) { return static_cast<double>( v ); }
 
@@ -37,7 +39,9 @@ inline json element_to_json( char16_t v ) { return static_cast<uint16_t>( v ); }
 inline json element_to_json( const std::wstring &v ) { return wstring_to_utf8( v ); }
 
 inline json element_to_json( const ros_babel_fish::CompoundMessage &v )
-{ return compound_message_to_json( v ); }
+{
+  return compound_message_to_json( v );
+}
 
 // =============================================================================
 // Deserialization helpers: element_from_json
@@ -45,19 +49,27 @@ inline json element_to_json( const ros_babel_fish::CompoundMessage &v )
 
 template<typename T>
 T element_from_json( const json &j )
-{ return j.get<T>(); }
+{
+  return j.get<T>();
+}
 
 template<>
 inline long double element_from_json<long double>( const json &j )
-{ return static_cast<long double>( j.get<double>() ); }
+{
+  return static_cast<long double>( j.get<double>() );
+}
 
 template<>
 inline char16_t element_from_json<char16_t>( const json &j )
-{ return static_cast<char16_t>( j.get<uint16_t>() ); }
+{
+  return static_cast<char16_t>( j.get<uint16_t>() );
+}
 
 template<>
 inline std::wstring element_from_json<std::wstring>( const json &j )
-{ return utf8_to_wstring( j.get_ref<const std::string &>() ); }
+{
+  return utf8_to_wstring( j.get_ref<const std::string &>() );
+}
 
 template<>
 inline bool element_from_json<bool>( const json &j )
