@@ -102,13 +102,14 @@ int64_t BabelFishServiceClient::async_send_request_impl( const SharedRequest &re
 {
   std::lock_guard<std::mutex> lock( pending_requests_mutex_ );
   int64_t sequence_number;
-  rcl_ret_t ret = rcl_send_request( get_client_handle().get(),
-                                    request->type_erased_message().get(), &sequence_number );
+  rcl_ret_t ret = rcl_send_request( get_client_handle().get(), request->type_erased_message().get(),
+                                    &sequence_number );
   if ( RCL_RET_OK != ret ) {
     rclcpp::exceptions::throw_from_rcl_error( ret, "failed to send request" );
   }
 
-  pending_requests_.try_emplace(sequence_number, std::make_pair(std::chrono::system_clock::now(), std::move( value )));
+  pending_requests_.try_emplace(
+      sequence_number, std::make_pair( std::chrono::system_clock::now(), std::move( value ) ) );
   return sequence_number;
 }
 
@@ -141,9 +142,9 @@ size_t BabelFishServiceClient::prune_pending_requests()
   return count;
 }
 
-void BabelFishServiceClient::configure_introspection( const rclcpp::Clock::SharedPtr &clock,
-                                                   const rclcpp::QoS &qos_service_event_pub,
-                                                   rcl_service_introspection_state_t introspection_state )
+void BabelFishServiceClient::configure_introspection(
+    const rclcpp::Clock::SharedPtr &clock, const rclcpp::QoS &qos_service_event_pub,
+    rcl_service_introspection_state_t introspection_state )
 {
   rcl_publisher_options_t pub_opts = rcl_publisher_get_default_options();
   pub_opts.qos = qos_service_event_pub.get_rmw_qos_profile();

@@ -35,7 +35,8 @@ TEST( ServiceClientTest, tests )
   BabelFishServiceClient::SharedPtr client = fish.create_service_client(
       *node, "/test_service_client/two_ints_client", "example_interfaces/srv/AddTwoInts" );
   ASSERT_TRUE( client->wait_for_service( 5s ) );
-  std::shared_future<CompoundMessage::SharedPtr> response_future = client->async_send_request( req ).share();
+  std::shared_future<CompoundMessage::SharedPtr> response_future =
+      client->async_send_request( req ).share();
   ASSERT_EQ( response_future.wait_for( 5s ), std::future_status::ready );
   CompoundMessage::SharedPtr response = response_future.get();
   ASSERT_NE( response->type_erased_message(), nullptr );

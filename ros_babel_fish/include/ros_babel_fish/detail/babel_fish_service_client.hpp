@@ -67,20 +67,21 @@ public:
     Promise promise;
     auto shared_future = promise.get_future().share();
     int64_t req_id = async_send_request_impl(
-        request, std::make_tuple(CallbackType{ std::forward<CallbackT>( cb )}, shared_future,
-                                           std::move( promise ) ) );
+        request, std::make_tuple( CallbackType{ std::forward<CallbackT>( cb ) }, shared_future,
+                                  std::move( promise ) ) );
     return { std::move( shared_future ), req_id };
   }
 
   template<typename CallbackT, typename std::enable_if<rclcpp::function_traits::same_arguments<
                                    CallbackT, CallbackWithRequestType>::value>::type * = nullptr>
-  SharedFutureWithRequestAndRequestId async_send_request( const SharedRequest &request, CallbackT &&cb )
+  SharedFutureWithRequestAndRequestId async_send_request( const SharedRequest &request,
+                                                          CallbackT &&cb )
   {
     PromiseWithRequest promise;
     auto shared_future = promise.get_future().share();
     int64_t req_id = async_send_request_impl(
-        request, std::make_tuple(CallbackWithRequestType{ std::forward<CallbackT>( cb ) }, request,
-                                                       shared_future, std::move( promise )  ));
+        request, std::make_tuple( CallbackWithRequestType{ std::forward<CallbackT>( cb ) }, request,
+                                  shared_future, std::move( promise ) ) );
     return { std::move( shared_future ), req_id };
   }
 
@@ -96,15 +97,15 @@ public:
 
   template<typename AllocatorT = std::allocator<int64_t>>
   size_t prune_requests_older_than( std::chrono::time_point<std::chrono::system_clock> time_point,
-                                   std::vector<int64_t, AllocatorT> *pruned_requests = nullptr )
+                                    std::vector<int64_t, AllocatorT> *pruned_requests = nullptr )
   {
-    return rclcpp::detail::prune_requests_older_than_impl(pending_requests_, pending_requests_mutex_, time_point, pruned_requests);
+    return rclcpp::detail::prune_requests_older_than_impl(
+        pending_requests_, pending_requests_mutex_, time_point, pruned_requests );
   }
 
   void configure_introspection( const rclcpp::Clock::SharedPtr &clock,
                                 const rclcpp::QoS &qos_service_event_pub,
                                 rcl_service_introspection_state_t introspection_state );
-
 
 protected:
   using CallbackTypeValueVariant = std::tuple<CallbackType, SharedFuture, Promise>;
@@ -114,15 +115,15 @@ protected:
   using CallbackInfoVariant =
       std::variant<Promise, CallbackTypeValueVariant, CallbackWithRequestTypeValueVariant>;
 
-      int64_t async_send_request_impl( const SharedRequest &request, CallbackInfoVariant value );
+  int64_t async_send_request_impl( const SharedRequest &request, CallbackInfoVariant value );
 
   RCLCPP_DISABLE_COPY( BabelFishServiceClient )
 
-  std::map<int64_t, std::pair<std::chrono::time_point<std::chrono::system_clock>, CallbackInfoVariant>> pending_requests_;
+  std::map<int64_t, std::pair<std::chrono::time_point<std::chrono::system_clock>, CallbackInfoVariant>>
+      pending_requests_;
   std::mutex pending_requests_mutex_;
 
 private:
-
   ServiceTypeSupport::ConstSharedPtr type_support_;
 };
 } // namespace ros_babel_fish
