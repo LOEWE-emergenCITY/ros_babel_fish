@@ -110,6 +110,10 @@ public:
   std::shared_future<CancelResponse>
   async_cancel_goals_before( const rclcpp::Time &stamp, CancelCallback cancel_callback = nullptr );
 
+  void stop_callbacks( typename GoalHandle::SharedPtr goal_handle );
+
+  void stop_callbacks( const GoalUUID &goal_id );
+
 protected:
   std::shared_ptr<void> create_goal_response() const override;
 
@@ -132,7 +136,7 @@ protected:
 
 private:
   std::shared_ptr<const ros_babel_fish::ActionTypeSupport> type_support_;
-  std::mutex goal_handles_mutex_;
+  std::recursive_mutex goal_handles_mutex_;
   std::map<GoalUUID, typename GoalHandle::WeakPtr> goal_handles_;
 };
 } // namespace rclcpp_action
