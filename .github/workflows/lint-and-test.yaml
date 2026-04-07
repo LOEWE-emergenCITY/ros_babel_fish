@@ -43,8 +43,8 @@ jobs:
       - name: install build tools
         run: |
           sudo apt-get update
-          sudo apt-get upgrade -y
-          sudo apt-get install -y ros-dev-tools
+          sudo apt-get install -y ros-dev-tools ros2-testing-apt-source
+          sudo apt-get update && sudo apt-get dist-upgrade -y
       - uses: actions/checkout@v4
         with:
           path: src
