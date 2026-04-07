@@ -24,7 +24,7 @@ jobs:
           clang-format-20 -Werror -n -style=file $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.c' -o -name '*.cc')
       - name: Check C++
         run: |
-          cppcheck --force --quiet --inline-suppr --error-exitcode=1 . "-DRCLCPP_SMART_PTR_DEFINITIONS(...)=" "-DRCLCPP_SMART_PTR_DEFINITIONS_NOT_COPYABLE(...)=" "-DRCLCPP_DISABLE_COPY(...)=" $(find . -not -path '*/third_party/*' \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \))
+          cppcheck --force --quiet --inline-suppr --error-exitcode=1 "-DRCLCPP_SMART_PTR_DEFINITIONS(...)=" "-DRCLCPP_SMART_PTR_DEFINITIONS_NOT_COPYABLE(...)=" "-DRCLCPP_DISABLE_COPY(...)=" $(find . -not -path '*/third_party/*' \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \))
       - name: Lint package.xml
         run: |
           xmllint --noout --schema http://download.ros.org/schema/package_format3.xsd $(find . -name 'package.xml')
