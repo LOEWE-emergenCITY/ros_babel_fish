@@ -109,11 +109,7 @@ void BabelFishSubscription::handle_loaned_message( void *loaned_message,
   (void)message_info;
 }
 
-void BabelFishSubscription::return_message( std::shared_ptr<void> &message )
-{
-  auto typed_message = std::static_pointer_cast<rclcpp::SerializedMessage>( message );
-  return_serialized_message( typed_message );
-}
+void BabelFishSubscription::return_message( std::shared_ptr<void> &message ) { message.reset(); }
 
 void BabelFishSubscription::return_serialized_message( std::shared_ptr<rclcpp::SerializedMessage> &message )
 {

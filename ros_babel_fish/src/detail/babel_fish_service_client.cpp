@@ -51,8 +51,8 @@ std::shared_ptr<rmw_request_id_t> BabelFishServiceClient::create_request_header(
   return std::make_shared<rmw_request_id_t>();
 }
 
-void BabelFishServiceClient::handle_response( std::shared_ptr<rmw_request_id_t> request_header,
-                                              std::shared_ptr<void> response )
+void BabelFishServiceClient::handle_response( const std::shared_ptr<rmw_request_id_t> &request_header,
+                                              const std::shared_ptr<void> &response )
 {
   std::unique_lock<std::mutex> lock( pending_requests_mutex_ );
   const int64_t sequence_number = request_header->sequence_number;
@@ -61,20 +61,100 @@ void BabelFishServiceClient::handle_response( std::shared_ptr<rmw_request_id_t> 
     RCUTILS_LOG_ERROR_NAMED( "rclcpp", "Received invalid sequence number. Ignoring..." );
     return;
   }
-  auto &request = it->second;
-  auto call_promise = std::get<0>( request );
-  auto callback = std::get<1>( request );
-  auto future = std::get<2>( request );
+  auto value = std::move( it->second.second );
   pending_requests_.erase( it );
   // Unlock since the callback might call this recursively
   lock.unlock();
 
-  call_promise->set_value( CompoundMessage::make_shared( type_support_->response(), response ) );
-  callback( future );
+  auto typed_response = CompoundMessage::make_shared( type_support_->response(), response );
+  if ( std::holds_alternative<Promise>( value ) ) {
+    auto &promise = std::get<Promise>( value );
+    promise.set_value( std::move( typed_response ) );
+  } else if ( std::holds_alternative<CallbackTypeValueVariant>( value ) ) {
+    auto &inner = std::get<CallbackTypeValueVariant>( value );
+    const auto &callback = std::get<CallbackType>( inner );
+    auto &promise = std::get<Promise>( inner );
+    auto &future = std::get<SharedFuture>( inner );
+    promise.set_value( std::move( typed_response ) );
+    callback( std::move( future ) );
+  } else if ( std::holds_alternative<CallbackWithRequestTypeValueVariant>( value ) ) {
+    auto &inner = std::get<CallbackWithRequestTypeValueVariant>( value );
+    const auto &callback = std::get<CallbackWithRequestType>( inner );
+    auto &promise = std::get<PromiseWithRequest>( inner );
+    auto &future = std::get<SharedFutureWithRequest>( inner );
+    auto &request = std::get<SharedRequest>( inner );
+    promise.set_value( std::make_pair( std::move( request ), std::move( typed_response ) ) );
+    callback( std::move( future ) );
+  }
 }
 
-BabelFishServiceClient::SharedFuture BabelFishServiceClient::async_send_request( SharedRequest request )
+BabelFishServiceClient::FutureAndRequestId
+BabelFishServiceClient::async_send_request( const SharedRequest &request )
 {
-  return async_send_request( request, []( SharedFuture ) {} );
+  Promise promise;
+  auto future = promise.get_future();
+  auto req_id = async_send_request_impl( request, std::move( promise ) );
+  return { std::move( future ), req_id };
+}
+
+int64_t BabelFishServiceClient::async_send_request_impl( const SharedRequest &request,
+                                                         CallbackInfoVariant value )
+{
+  std::lock_guard<std::mutex> lock( pending_requests_mutex_ );
+  int64_t sequence_number;
+  rcl_ret_t ret = rcl_send_request( get_client_handle().get(), request->type_erased_message().get(),
+                                    &sequence_number );
+  if ( RCL_RET_OK != ret ) {
+    rclcpp::exceptions::throw_from_rcl_error( ret, "failed to send request" );
+  }
+
+  pending_requests_.try_emplace(
+      sequence_number, std::make_pair( std::chrono::system_clock::now(), std::move( value ) ) );
+  return sequence_number;
+}
+
+bool BabelFishServiceClient::remove_pending_request( int64_t request_id )
+{
+  std::lock_guard<std::mutex> lock( pending_requests_mutex_ );
+  return pending_requests_.erase( request_id ) != 0;
+}
+
+bool BabelFishServiceClient::remove_pending_request( const FutureAndRequestId &future )
+{
+  return remove_pending_request( future.request_id );
+}
+
+bool BabelFishServiceClient::remove_pending_request( const SharedFutureAndRequestId &future )
+{
+  return remove_pending_request( future.request_id );
+}
+
+bool BabelFishServiceClient::remove_pending_request( const SharedFutureWithRequestAndRequestId &future )
+{
+  return remove_pending_request( future.request_id );
+}
+
+size_t BabelFishServiceClient::prune_pending_requests()
+{
+  std::lock_guard<std::mutex> lock( pending_requests_mutex_ );
+  size_t count = pending_requests_.size();
+  pending_requests_.clear();
+  return count;
+}
+
+void BabelFishServiceClient::configure_introspection(
+    const rclcpp::Clock::SharedPtr &clock, const rclcpp::QoS &qos_service_event_pub,
+    rcl_service_introspection_state_t introspection_state )
+{
+  rcl_publisher_options_t pub_opts = rcl_publisher_get_default_options();
+  pub_opts.qos = qos_service_event_pub.get_rmw_qos_profile();
+
+  rcl_ret_t ret = rcl_client_configure_service_introspection(
+      client_handle_.get(), node_handle_.get(), clock->get_clock_handle(),
+      &type_support_->type_support_handle, pub_opts, introspection_state );
+
+  if ( RCL_RET_OK != ret ) {
+    rclcpp::exceptions::throw_from_rcl_error( ret, "failed to configure client introspection" );
+  }
 }
 } // namespace ros_babel_fish

@@ -26,6 +26,21 @@ public:
   using CallbackType = std::function<void( SharedFuture )>;
   using CallbackWithRequestType = std::function<void( const SharedFutureWithRequest & )>;
 
+  struct FutureAndRequestId : rclcpp::detail::FutureAndRequestId<std::future<SharedResponse>> {
+    using rclcpp::detail::FutureAndRequestId<std::future<SharedResponse>>::FutureAndRequestId;
+
+    SharedFuture share() noexcept { return this->future.share(); }
+  };
+
+  struct SharedFutureAndRequestId : rclcpp::detail::FutureAndRequestId<SharedFuture> {
+    using rclcpp::detail::FutureAndRequestId<SharedFuture>::FutureAndRequestId;
+  };
+
+  struct SharedFutureWithRequestAndRequestId
+      : rclcpp::detail::FutureAndRequestId<SharedFutureWithRequest> {
+    using rclcpp::detail::FutureAndRequestId<SharedFutureWithRequest>::FutureAndRequestId;
+  };
+
   RCLCPP_SMART_PTR_DEFINITIONS( BabelFishServiceClient )
 
   BabelFishServiceClient( rclcpp::node_interfaces::NodeBaseInterface *node_base,
@@ -40,54 +55,76 @@ public:
 
   std::shared_ptr<rmw_request_id_t> create_request_header() override;
 
-  SharedFuture async_send_request( SharedRequest request );
+  void handle_response( const std::shared_ptr<rmw_request_id_t> &request_header,
+                        const std::shared_ptr<void> &response ) override;
+
+  FutureAndRequestId async_send_request( const SharedRequest &request );
 
   template<typename CallbackT, typename std::enable_if<rclcpp::function_traits::same_arguments<
                                    CallbackT, CallbackType>::value>::type * = nullptr>
-  SharedFuture async_send_request( const SharedRequest &request, CallbackT &&cb )
+  SharedFutureAndRequestId async_send_request( const SharedRequest &request, CallbackT &&cb )
   {
-    std::lock_guard<std::mutex> lock( pending_requests_mutex_ );
-    int64_t sequence_number;
-    rcl_ret_t ret = rcl_send_request( get_client_handle().get(),
-                                      request->type_erased_message().get(), &sequence_number );
-    if ( RCL_RET_OK != ret ) {
-      rclcpp::exceptions::throw_from_rcl_error( ret, "failed to send request_template" );
-    }
-
-    SharedPromise call_promise = std::make_shared<Promise>();
-    SharedFuture f( call_promise->get_future() );
-    pending_requests_[sequence_number] =
-        std::make_tuple( call_promise, std::forward<CallbackType>( cb ), f );
-    return f;
+    Promise promise;
+    auto shared_future = promise.get_future().share();
+    int64_t req_id = async_send_request_impl(
+        request, std::make_tuple( CallbackType{ std::forward<CallbackT>( cb ) }, shared_future,
+                                  std::move( promise ) ) );
+    return { std::move( shared_future ), req_id };
   }
 
   template<typename CallbackT, typename std::enable_if<rclcpp::function_traits::same_arguments<
                                    CallbackT, CallbackWithRequestType>::value>::type * = nullptr>
-  SharedFutureWithRequest async_send_request( SharedRequest request, CallbackT &&cb )
+  SharedFutureWithRequestAndRequestId async_send_request( const SharedRequest &request,
+                                                          CallbackT &&cb )
   {
-    SharedPromiseWithRequest promise = std::make_shared<PromiseWithRequest>();
-    SharedFutureWithRequest future_with_request( promise->get_future() );
-
-    auto wrapping_cb = [future_with_request, promise, request, &cb]( const SharedFuture &future ) {
-      auto response = future.get();
-      promise->set_value( std::make_pair( request, response ) );
-      cb( future_with_request );
-    };
-
-    async_send_request( request, wrapping_cb );
-
-    return future_with_request;
+    PromiseWithRequest promise;
+    auto shared_future = promise.get_future().share();
+    int64_t req_id = async_send_request_impl(
+        request, std::make_tuple( CallbackWithRequestType{ std::forward<CallbackT>( cb ) }, request,
+                                  shared_future, std::move( promise ) ) );
+    return { std::move( shared_future ), req_id };
   }
 
-  void handle_response( std::shared_ptr<rmw_request_id_t> request_header,
-                        std::shared_ptr<void> response ) override;
+  bool remove_pending_request( int64_t request_id );
 
-private:
+  bool remove_pending_request( const FutureAndRequestId &future );
+
+  bool remove_pending_request( const SharedFutureAndRequestId &future );
+
+  bool remove_pending_request( const SharedFutureWithRequestAndRequestId &future );
+
+  size_t prune_pending_requests();
+
+  template<typename AllocatorT = std::allocator<int64_t>>
+  size_t prune_requests_older_than( std::chrono::time_point<std::chrono::system_clock> time_point,
+                                    std::vector<int64_t, AllocatorT> *pruned_requests = nullptr )
+  {
+    return rclcpp::detail::prune_requests_older_than_impl(
+        pending_requests_, pending_requests_mutex_, time_point, pruned_requests );
+  }
+
+  void configure_introspection( const rclcpp::Clock::SharedPtr &clock,
+                                const rclcpp::QoS &qos_service_event_pub,
+                                rcl_service_introspection_state_t introspection_state );
+
+protected:
+  using CallbackTypeValueVariant = std::tuple<CallbackType, SharedFuture, Promise>;
+  using CallbackWithRequestTypeValueVariant =
+      std::tuple<CallbackWithRequestType, SharedRequest, SharedFutureWithRequest, PromiseWithRequest>;
+
+  using CallbackInfoVariant =
+      std::variant<Promise, CallbackTypeValueVariant, CallbackWithRequestTypeValueVariant>;
+
+  int64_t async_send_request_impl( const SharedRequest &request, CallbackInfoVariant value );
+
   RCLCPP_DISABLE_COPY( BabelFishServiceClient )
 
-  std::map<int64_t, std::tuple<SharedPromise, CallbackType, SharedFuture>> pending_requests_;
-  ServiceTypeSupport::ConstSharedPtr type_support_;
+  std::map<int64_t, std::pair<std::chrono::time_point<std::chrono::system_clock>, CallbackInfoVariant>>
+      pending_requests_;
   std::mutex pending_requests_mutex_;
+
+private:
+  ServiceTypeSupport::ConstSharedPtr type_support_;
 };
 } // namespace ros_babel_fish
 

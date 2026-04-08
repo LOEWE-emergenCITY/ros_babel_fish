@@ -79,12 +79,28 @@ std::shared_ptr<rmw_request_id_t> BabelFishService::create_request_header()
   return std::make_shared<rmw_request_id_t>();
 }
 
-void BabelFishService::handle_request( std::shared_ptr<rmw_request_id_t> request_header,
-                                       std::shared_ptr<void> request )
+void BabelFishService::handle_request( const std::shared_ptr<rmw_request_id_t> &request_header,
+                                       const std::shared_ptr<void> &request )
 {
   auto typed_request = CompoundMessage::make_shared( type_support_->request(), request );
   auto response = CompoundMessage::make_shared( type_support_->response() );
   callback_.dispatch( this->shared_from_this(), request_header, typed_request, response );
   send_response( *request_header, *response );
+}
+
+void BabelFishService::configure_introspection( const rclcpp::Clock::SharedPtr &clock,
+                                                const rclcpp::QoS &qos_service_event_pub,
+                                                rcl_service_introspection_state_t introspection_state )
+{
+  rcl_publisher_options_t pub_opts = rcl_publisher_get_default_options();
+  pub_opts.qos = qos_service_event_pub.get_rmw_qos_profile();
+
+  rcl_ret_t ret = rcl_service_configure_service_introspection(
+      service_handle_.get(), node_handle_.get(), clock->get_clock_handle(),
+      &type_support_->type_support_handle, pub_opts, introspection_state );
+
+  if ( RCL_RET_OK != ret ) {
+    rclcpp::exceptions::throw_from_rcl_error( ret, "failed to configure service introspection" );
+  }
 }
 } // namespace ros_babel_fish

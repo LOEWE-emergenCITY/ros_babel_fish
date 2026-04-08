@@ -25,7 +25,7 @@ int main( int argc, char **argv )
     return 1;
   }
   RCLCPP_INFO( node->get_logger(), "Service available. Sending request." );
-  std::shared_future<CompoundMessage::SharedPtr> future = client->async_send_request( req );
+  std::shared_future<CompoundMessage::SharedPtr> future = client->async_send_request( req ).share();
   if ( rclcpp::spin_until_future_complete( node, future, 5s ) != rclcpp::FutureReturnCode::SUCCESS ) {
     std::cerr << "Timeout while waiting for reply from service!" << std::endl;
     return 1;

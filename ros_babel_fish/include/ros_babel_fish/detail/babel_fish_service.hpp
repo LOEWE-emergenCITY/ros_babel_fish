@@ -38,8 +38,12 @@ public:
 
   std::shared_ptr<rmw_request_id_t> create_request_header() override;
 
-  void handle_request( std::shared_ptr<rmw_request_id_t> request_header,
-                       std::shared_ptr<void> request ) override;
+  void handle_request( const std::shared_ptr<rmw_request_id_t> &request_header,
+                       const std::shared_ptr<void> &request ) override;
+
+  void configure_introspection( const rclcpp::Clock::SharedPtr &clock,
+                                const rclcpp::QoS &qos_service_event_pub,
+                                rcl_service_introspection_state_t introspection_state );
 
 private:
   RCLCPP_DISABLE_COPY( BabelFishService )

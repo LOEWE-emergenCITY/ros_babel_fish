@@ -136,6 +136,36 @@ Client<impl::BabelFishAction>::async_cancel_goals_before( const rclcpp::Time &st
   return async_cancel( cancel_request, cancel_callback );
 }
 
+void Client<impl::BabelFishAction>::stop_callbacks( typename GoalHandle::SharedPtr goal_handle )
+{
+  goal_handle->set_feedback_callback( FeedbackCallback() );
+  goal_handle->set_result_callback( ResultCallback() );
+
+  std::lock_guard guard( goal_handles_mutex_ );
+  const GoalUUID &goal_id = goal_handle->get_goal_id();
+  auto it = goal_handles_.find( goal_id );
+  if ( goal_handles_.end() == it ) {
+    return;
+  }
+  goal_handles_.erase( it );
+}
+
+void Client<impl::BabelFishAction>::stop_callbacks( const GoalUUID &goal_id )
+{
+  GoalHandle::SharedPtr goal_handle;
+  {
+    std::lock_guard guard( goal_handles_mutex_ );
+    auto it = goal_handles_.find( goal_id );
+    if ( goal_handles_.end() == it ) {
+      return;
+    }
+    goal_handle = it->second.lock();
+  }
+  if ( goal_handle ) {
+    stop_callbacks( goal_handle );
+  }
+}
+
 std::shared_future<ros_babel_fish::CompoundMessage>
 Client<impl::BabelFishAction>::async_cancel( CompoundMessage cancel_request,
                                              CancelCallback cancel_callback )
