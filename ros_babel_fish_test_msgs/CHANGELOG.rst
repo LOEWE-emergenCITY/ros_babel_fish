@@ -2,6 +2,15 @@
 Changelog for package ros_babel_fish_test_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Sync with rolling before Lyrical release. (`#18 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/18>`_)
+  * Synced with rolling implementation of communication interfaces to preserve full compatibility and fix latest breaking change.
+  * Updated CI, added pre-commit config and formatting.
+  * Fix clang-format version used to 20.
+  * Use testing sources in CI.
+* Contributors: Stefan Fabian
+
 3.26.30 (2026-03-09)
 --------------------
 
