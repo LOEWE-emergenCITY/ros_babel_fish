@@ -270,6 +270,33 @@ TEST_F( MessageDecodingTest, arrayTests )
   ASSERT_EQ( msg_subarrays_fixed.elementName(), "ros_babel_fish_test_msgs/msg/TestSubArray" );
 }
 
+TEST_F( MessageDecodingTest, deserializeSerializedMessage )
+{
+  using namespace std::chrono_literals;
+  rclcpp::GuardCondition::SharedPtr cond = std::make_shared<rclcpp::GuardCondition>();
+  rclcpp::WaitSet set;
+  set.add_guard_condition( cond );
+
+  std::shared_ptr<rclcpp::SerializedMessage> serialized_message;
+  auto subscription = fish.create_subscription(
+      *node, "/test_message_decoding/test_message", 1,
+      std::function<void( std::shared_ptr<rclcpp::SerializedMessage> )>(
+          [&serialized_message, &cond]( std::shared_ptr<rclcpp::SerializedMessage> msg ) {
+            serialized_message = std::move( msg );
+            cond->trigger();
+          } ) );
+  ASSERT_NE( subscription, nullptr );
+  ASSERT_EQ( set.wait( 5s ).kind(), rclcpp::WaitResultKind::Ready );
+  ASSERT_NE( serialized_message, nullptr );
+
+  CompoundMessage result;
+  ASSERT_TRUE( subscription->deserialize( *serialized_message, result ) );
+
+  ASSERT_TRUE( result.isValid() );
+  ASSERT_EQ( result.name(), "ros_babel_fish_test_msgs/msg/TestMessage" );
+  EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_message, result ) );
+}
+
 int main( int argc, char **argv )
 {
   testing::InitGoogleTest( &argc, argv );

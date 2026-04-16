@@ -71,6 +71,8 @@ public:
   void handle_dynamic_message( const rclcpp::dynamic_typesupport::DynamicMessage::SharedPtr &message,
                                const rclcpp::MessageInfo &message_info ) override;
 
+  bool deserialize( const rclcpp::SerializedMessage &serialized, CompoundMessage &out ) const;
+
 private:
   RCLCPP_DISABLE_COPY( BabelFishSubscription )
 
