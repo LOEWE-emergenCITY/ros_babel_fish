@@ -142,7 +142,13 @@ bool BabelFishSubscription::deserialize( const rclcpp::SerializedMessage &serial
   }
 
   rclcpp::SerializationBase serializer( &type_support_->type_support_handle );
-  serializer.deserialize_message( &serialized, type_erased.get() );
+  try {
+    serializer.deserialize_message( &serialized, type_erased.get() );
+  } catch ( const std::exception &e ) {
+    RBF2_ERROR_STREAM( "Failed to deserialize message of type '" << type_support_->name
+                                                                 << "': " << e.what() );
+    return false;
+  }
   out = CompoundMessage( *type_support_, std::move( type_erased ) );
   return true;
 }
