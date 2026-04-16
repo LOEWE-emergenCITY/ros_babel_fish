@@ -8,6 +8,7 @@
 
 #include <rcl/rcl.h>
 #include <rclcpp/node.hpp>
+#include <rclcpp/serialization.hpp>
 
 namespace ros_babel_fish
 {
@@ -135,6 +136,26 @@ MessageTypeSupport::ConstSharedPtr BabelFishSubscription::get_message_type_suppo
 }
 
 std::string BabelFishSubscription::get_message_type() const { return type_support_->name; }
+
+bool BabelFishSubscription::deserialize( const rclcpp::SerializedMessage &serialized,
+                                         CompoundMessage &out ) const
+{
+  auto type_erased = createContainer( *type_support_ );
+  if ( !type_erased ) {
+    return false;
+  }
+
+  rclcpp::SerializationBase serializer( &type_support_->type_support_handle );
+  try {
+    serializer.deserialize_message( &serialized, type_erased.get() );
+  } catch ( const std::exception &e ) {
+    RBF2_ERROR_STREAM( "Failed to deserialize message of type '" << type_support_->name
+                                                                 << "': " << e.what() );
+    return false;
+  }
+  out = CompoundMessage( *type_support_, std::move( type_erased ) );
+  return true;
+}
 
 rclcpp::dynamic_typesupport::DynamicMessageType::SharedPtr
 BabelFishSubscription::get_shared_dynamic_message_type()
