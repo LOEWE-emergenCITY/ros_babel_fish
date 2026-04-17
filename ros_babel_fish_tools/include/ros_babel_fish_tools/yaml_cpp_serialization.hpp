@@ -39,14 +39,14 @@ YAML::Node compound_message_to_yaml( const ros_babel_fish::CompoundMessage &mess
  *
  * Fields present in the YAML but not in the message type are ignored.
  * Fields present in the message type but not in the YAML are left at their default values.
- * For bounded array fields: if the YAML sequence is larger than the bounded maximum, behaviour is
- * controlled by the Behavior template parameter (throw by default).
+ * For bounded and fixed-length array fields: if the YAML sequence is larger than the field's
+ * maximum size, behaviour is controlled by the Behavior template parameter (throw by default).
  *
- * @tparam Behavior What to do when a YAML sequence exceeds a bounded field's maximum size.
+ * @tparam Behavior What to do when a YAML sequence exceeds a bounded or fixed-length field's maximum size.
  * @param node The YAML map containing the field values.
  * @param message The compound message to populate.
  * @throws ros_babel_fish::BabelFishException If a value type is incompatible or (when
- *   Behavior == BoundsCheckBehavior::Throw) a bounded array is exceeded.
+ *   Behavior == BoundsCheckBehavior::Throw) a bounded or fixed-length array is exceeded.
  */
 template<BoundsCheckBehavior Behavior = BoundsCheckBehavior::Throw>
 void yaml_to_message( const YAML::Node &node, ros_babel_fish::CompoundMessage &message );
