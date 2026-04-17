@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+3.26.40 (2026-04-17)
+--------------------
 * Reduce array size to prevent compile errors on MSVC.
 * Added conversion to YAML, JSON and an echo node as example. (`#22 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/22>`_)
   * Added conversion to YAML, JSON and an echo node as example.
