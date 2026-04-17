@@ -2,6 +2,16 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Reduce array size to prevent compile errors on MSVC.
+* Added conversion to YAML, JSON and an echo node as example. (`#16 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/16>`_)
+  * Added conversion to YAML, JSON and an echo node as example.
+* Add a deserialize method to Subscription (`#19 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/19>`_)
+  * Add a deserialize method to Subscription to enable users to use a SerializedMessage and deserialize later.
+  * Catch exceptions when deserializing.
+* Contributors: Stefan Fabian
+
 4.26.40 (2026-04-08)
 --------------------
 * Sync with rolling before Lyrical release. (`#18 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/18>`_)

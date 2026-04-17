@@ -2,6 +2,9 @@
 Changelog for package ros_babel_fish_test_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 4.26.40 (2026-04-08)
 --------------------
 * Sync with rolling before Lyrical release. (`#18 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/18>`_)
