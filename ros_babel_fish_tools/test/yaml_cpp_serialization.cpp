@@ -210,6 +210,40 @@ TEST_F( YamlSerializationTest, int8RangeCheck )
   EXPECT_THROW( yaml_to_message( node, msg ), ros_babel_fish::BabelFishException );
 }
 
+TEST_F( YamlSerializationTest, invalidYamlTimeFastPathThrowsBabelFishException )
+{
+  YAML::Node node;
+  node["t"]["sec"] = "invalid";
+
+  CompoundMessage msg = fish.create_message( "ros_babel_fish_test_msgs/msg/TestMessage" );
+  try {
+    yaml_to_message( node, msg );
+    FAIL() << "Should have thrown BabelFishException";
+  } catch ( const BabelFishException & ) {
+  } catch ( const YAML::Exception &e ) {
+    FAIL() << "Expected wrapped BabelFishException but caught raw YAML exception: " << e.what();
+  } catch ( const std::exception &e ) {
+    FAIL() << "Expected BabelFishException but caught: " << e.what();
+  }
+}
+
+TEST_F( YamlSerializationTest, invalidYamlDurationFastPathThrowsBabelFishException )
+{
+  YAML::Node node;
+  node["d"]["nanosec"] = "invalid";
+
+  CompoundMessage msg = fish.create_message( "ros_babel_fish_test_msgs/msg/TestMessage" );
+  try {
+    yaml_to_message( node, msg );
+    FAIL() << "Should have thrown BabelFishException";
+  } catch ( const BabelFishException & ) {
+  } catch ( const YAML::Exception &e ) {
+    FAIL() << "Expected wrapped BabelFishException but caught raw YAML exception: " << e.what();
+  } catch ( const std::exception &e ) {
+    FAIL() << "Expected BabelFishException but caught: " << e.what();
+  }
+}
+
 TEST_F( YamlSerializationTest, nullValuesIgnored )
 {
   CompoundMessage msg = fish.create_message( "ros_babel_fish_test_msgs/msg/TestMessage" );

@@ -150,7 +150,8 @@ struct ArraySetters {
                           const json &j )
   {
     resize_array<BOUNDED, FIXED_LENGTH>( array, j );
-    for ( size_t i = 0; i < array.size(); ++i ) {
+    size_t count = std::min( j.size(), array.size() );
+    for ( size_t i = 0; i < count; ++i ) {
       if ( j[i].is_null() )
         continue;
       try {
@@ -167,7 +168,8 @@ struct ArraySetters {
                           const json &j )
   {
     resize_array<BOUNDED, FIXED_LENGTH>( array, j );
-    for ( size_t i = 0; i < array.size(); ++i ) {
+    size_t count = std::min( j.size(), array.size() );
+    for ( size_t i = 0; i < count; ++i ) {
       if ( j[i].is_null() )
         continue;
       try {
@@ -193,20 +195,28 @@ void json_to_message( const json &j, ros_babel_fish::CompoundMessage &message )
   if ( j.is_null() )
     return;
   if ( !j.is_object() )
-    throw SerializationException( "expected JSON object, got " + std::string( j.type_name() ) );
+    throw SerializationException( "Expected JSON object, got " + std::string( j.type_name() ) );
 
   if ( message.isTime() ) {
-    builtin_interfaces::msg::Time t;
-    t.sec = j.value( "sec", int32_t( 0 ) );
-    t.nanosec = j.value( "nanosec", uint32_t( 0 ) );
-    message = t;
+    try {
+      builtin_interfaces::msg::Time t;
+      t.sec = j.value( "sec", int32_t( 0 ) );
+      t.nanosec = j.value( "nanosec", uint32_t( 0 ) );
+      message = t;
+    } catch ( const nlohmann::json::exception &e ) {
+      throw SerializationException( std::string( e.what() ) );
+    }
     return;
   }
   if ( message.isDuration() ) {
-    builtin_interfaces::msg::Duration d;
-    d.sec = j.value( "sec", int32_t( 0 ) );
-    d.nanosec = j.value( "nanosec", uint32_t( 0 ) );
-    message = d;
+    try {
+      builtin_interfaces::msg::Duration d;
+      d.sec = j.value( "sec", int32_t( 0 ) );
+      d.nanosec = j.value( "nanosec", uint32_t( 0 ) );
+      message = d;
+    } catch ( const nlohmann::json::exception &e ) {
+      throw SerializationException( std::string( e.what() ) );
+    }
     return;
   }
 
@@ -222,7 +232,7 @@ void json_to_message( const json &j, ros_babel_fish::CompoundMessage &message )
         json_to_message<Behavior>( child_json, child.as<CompoundMessage>() );
       } else if ( child.type() == MessageTypes::Array ) {
         if ( !child_json.is_array() )
-          throw SerializationException( "expected JSON array, got " +
+          throw SerializationException( "Expected JSON array, got " +
                                         std::string( child_json.type_name() ) );
 
         ros_babel_fish::invoke_for_array_message( child.as<ArrayMessageBase>(),

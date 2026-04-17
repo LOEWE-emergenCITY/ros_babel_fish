@@ -4,6 +4,7 @@
 #include "ros_babel_fish_tools/nlohmann_json_serialization.hpp"
 #include "ros_babel_fish_tools/yaml_cpp_serialization.hpp"
 
+#include <cstdlib>
 #include <iostream>
 #include <rclcpp/rclcpp.hpp>
 

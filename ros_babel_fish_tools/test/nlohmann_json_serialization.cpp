@@ -439,6 +439,66 @@ TEST_F( JsonSerializationTest, boundedArrayClamp )
   EXPECT_DOUBLE_EQ( arr[15], 15.0 );
 }
 
+TEST_F( JsonSerializationTest, shortJsonLeavesRemainingFixedPrimitiveArrayElementsUnchanged )
+{
+  auto msg = fish.create_message_shared( "ros_babel_fish_test_msgs/msg/TestArray" );
+  json j = { { "uint16s", { 1, 2 } } };
+
+  ASSERT_NO_THROW( json_to_message( j, *msg ) );
+  json round_trip = compound_message_to_json( *msg );
+  ASSERT_TRUE( round_trip["uint16s"].is_array() );
+  EXPECT_EQ( round_trip["uint16s"].size(), 32u );
+  EXPECT_EQ( round_trip["uint16s"][0].get<uint16_t>(), 1 );
+  EXPECT_EQ( round_trip["uint16s"][1].get<uint16_t>(), 2 );
+  EXPECT_EQ( round_trip["uint16s"][2].get<uint16_t>(), 0 );
+}
+
+TEST_F( JsonSerializationTest, shortJsonLeavesRemainingFixedCompoundArrayElementsUnchanged )
+{
+  auto msg = fish.create_message_shared( "ros_babel_fish_test_msgs/msg/TestArray" );
+  json j = { { "durations", { { { "sec", 1 }, { "nanosec", 2 } } } } };
+
+  ASSERT_NO_THROW( json_to_message( j, *msg ) );
+  json round_trip = compound_message_to_json( *msg );
+  ASSERT_TRUE( round_trip["durations"].is_array() );
+  EXPECT_EQ( round_trip["durations"].size(), 12u );
+  EXPECT_EQ( round_trip["durations"][0]["sec"].get<int32_t>(), 1 );
+  EXPECT_EQ( round_trip["durations"][0]["nanosec"].get<uint32_t>(), 2u );
+  EXPECT_EQ( round_trip["durations"][1]["sec"].get<int32_t>(), 0 );
+}
+
+TEST_F( JsonSerializationTest, invalidJsonTimeFastPathThrowsBabelFishException )
+{
+  auto msg = fish.create_message_shared( "ros_babel_fish_test_msgs/msg/TestMessage" );
+  json j = { { "t", { { "sec", "invalid" } } } };
+
+  try {
+    json_to_message( j, *msg );
+    FAIL() << "Should have thrown BabelFishException";
+  } catch ( const BabelFishException & ) {
+  } catch ( const nlohmann::json::exception &e ) {
+    FAIL() << "Expected wrapped BabelFishException but caught raw json exception: " << e.what();
+  } catch ( const std::exception &e ) {
+    FAIL() << "Expected BabelFishException but caught: " << e.what();
+  }
+}
+
+TEST_F( JsonSerializationTest, invalidJsonDurationFastPathThrowsBabelFishException )
+{
+  auto msg = fish.create_message_shared( "ros_babel_fish_test_msgs/msg/TestMessage" );
+  json j = { { "d", { { "nanosec", "invalid" } } } };
+
+  try {
+    json_to_message( j, *msg );
+    FAIL() << "Should have thrown BabelFishException";
+  } catch ( const BabelFishException & ) {
+  } catch ( const nlohmann::json::exception &e ) {
+    FAIL() << "Expected wrapped BabelFishException but caught raw json exception: " << e.what();
+  } catch ( const std::exception &e ) {
+    FAIL() << "Expected BabelFishException but caught: " << e.what();
+  }
+}
+
 TEST_F( JsonSerializationTest, nullValuesIgnored )
 {
   auto msg = fish.create_message_shared( "ros_babel_fish_test_msgs/msg/TestMessage" );
