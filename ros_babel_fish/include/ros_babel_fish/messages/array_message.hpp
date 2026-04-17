@@ -108,9 +108,9 @@ public:
         if constexpr ( SIZE == ArraySize::DYNAMIC ) {
           return ( *reinterpret_cast<std::vector<T> *>( data_.get() ) )[index];
         }
-        // This is the maximum object size divided by 1000 (so huge primitive types would fit).
-        // The actual object is obviously smaller, but we have checked the index already.
-        return ( *reinterpret_cast<std::array<T, 9223372036854775> *>( data_.get() ) )[index];
+        // The array size does not matter for access but large fixed size arrays can cause
+        // compile errors on MSVC.
+        return ( *reinterpret_cast<std::array<T, 1> *>( data_.get() ) )[index];
       }
       return *reinterpret_cast<ReturnType *>( member_->get_function( data_.get(), index ) );
     }
