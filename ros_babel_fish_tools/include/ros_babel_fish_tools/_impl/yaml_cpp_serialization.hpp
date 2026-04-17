@@ -222,17 +222,25 @@ void yaml_to_message( const YAML::Node &node, ros_babel_fish::CompoundMessage &m
     throw SerializationException( "expected YAML map" );
 
   if ( message.isTime() ) {
-    builtin_interfaces::msg::Time t;
-    t.sec = node["sec"] ? node["sec"].as<int32_t>() : int32_t( 0 );
-    t.nanosec = node["nanosec"] ? node["nanosec"].as<uint32_t>() : uint32_t( 0 );
-    message = t;
+    try {
+      builtin_interfaces::msg::Time t;
+      t.sec = node["sec"] ? node["sec"].as<int32_t>() : int32_t( 0 );
+      t.nanosec = node["nanosec"] ? node["nanosec"].as<uint32_t>() : uint32_t( 0 );
+      message = t;
+    } catch ( const YAML::Exception &e ) {
+      throw SerializationException( std::string( e.what() ) );
+    }
     return;
   }
   if ( message.isDuration() ) {
-    builtin_interfaces::msg::Duration d;
-    d.sec = node["sec"] ? node["sec"].as<int32_t>() : int32_t( 0 );
-    d.nanosec = node["nanosec"] ? node["nanosec"].as<uint32_t>() : uint32_t( 0 );
-    message = d;
+    try {
+      builtin_interfaces::msg::Duration d;
+      d.sec = node["sec"] ? node["sec"].as<int32_t>() : int32_t( 0 );
+      d.nanosec = node["nanosec"] ? node["nanosec"].as<uint32_t>() : uint32_t( 0 );
+      message = d;
+    } catch ( const YAML::Exception &e ) {
+      throw SerializationException( std::string( e.what() ) );
+    }
     return;
   }
 

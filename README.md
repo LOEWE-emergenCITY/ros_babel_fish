@@ -15,7 +15,7 @@ Possible use cases where you do need it are:
 
 * UIs displaying the content of various at compile time unknown messages
 * Plugins for (script) languages that can not access the C++ message definitions without modification
-* Serialization and Deserialization from and to JSON and YAML (see [Serialization](#-Serialization))
+* Serialization and Deserialization from and to JSON and YAML (see [Serialization](#serialization))
 
 > [!NOTE]
 > **Spot for shameless self-advertising**  
