@@ -2,6 +2,18 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [Backport jazzy] Added conversion to YAML, JSON and an echo node as example. (`#17 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/17>`_)
+  * Changes from `#16 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/16>`_.
+  * Changes for jazzy compatibility.
+* Add a deserialize method to Subscription (`#19 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/19>`_)
+  * Add a deserialize method to Subscription to enable users to use a SerializedMessage and deserialize later.
+  * Catch exceptions when deserializing.
+* Fix MSVC build error: std::array size exceeds 32-bit limit (`#14 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/14>`_)
+  * Fix MSVC build error: reduce std::array placeholder size to comply with 32-bit limit
+* Contributors: Stefan Fabian
+
 2.25.111 (2025-11-30)
 ---------------------
 * Wrap exceptions when creating service or action client with invalid topic as BabelFishException.
