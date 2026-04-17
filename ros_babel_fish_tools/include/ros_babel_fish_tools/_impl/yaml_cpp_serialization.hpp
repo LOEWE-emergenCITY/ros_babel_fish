@@ -10,8 +10,10 @@
 #include <ros_babel_fish/messages/value_message.hpp>
 #include <ros_babel_fish/method_invoke_helpers.hpp>
 
+#include <algorithm>
 #include <builtin_interfaces/msg/duration.hpp>
 #include <builtin_interfaces/msg/time.hpp>
+#include <limits>
 
 namespace ros_babel_fish_tools
 {
@@ -224,8 +226,11 @@ void yaml_to_message( const YAML::Node &node, ros_babel_fish::CompoundMessage &m
   if ( message.isTime() ) {
     try {
       builtin_interfaces::msg::Time t;
-      t.sec = node["sec"] ? node["sec"].as<int32_t>() : int32_t( 0 );
-      t.nanosec = node["nanosec"] ? node["nanosec"].as<uint32_t>() : uint32_t( 0 );
+      const YAML::Node sec_node = node["sec"];
+      const YAML::Node nanosec_node = node["nanosec"];
+      t.sec = sec_node && !sec_node.IsNull() ? sec_node.as<int32_t>() : int32_t( 0 );
+      t.nanosec =
+          nanosec_node && !nanosec_node.IsNull() ? nanosec_node.as<uint32_t>() : uint32_t( 0 );
       message = t;
     } catch ( const YAML::Exception &e ) {
       throw SerializationException( std::string( e.what() ) );
@@ -235,8 +240,11 @@ void yaml_to_message( const YAML::Node &node, ros_babel_fish::CompoundMessage &m
   if ( message.isDuration() ) {
     try {
       builtin_interfaces::msg::Duration d;
-      d.sec = node["sec"] ? node["sec"].as<int32_t>() : int32_t( 0 );
-      d.nanosec = node["nanosec"] ? node["nanosec"].as<uint32_t>() : uint32_t( 0 );
+      const YAML::Node sec_node = node["sec"];
+      const YAML::Node nanosec_node = node["nanosec"];
+      d.sec = sec_node && !sec_node.IsNull() ? sec_node.as<int32_t>() : int32_t( 0 );
+      d.nanosec =
+          nanosec_node && !nanosec_node.IsNull() ? nanosec_node.as<uint32_t>() : uint32_t( 0 );
       message = d;
     } catch ( const YAML::Exception &e ) {
       throw SerializationException( std::string( e.what() ) );

@@ -244,6 +244,27 @@ TEST_F( YamlSerializationTest, invalidYamlDurationFastPathThrowsBabelFishExcepti
   }
 }
 
+TEST_F( YamlSerializationTest, nullYamlTimeAndDurationFieldsDefaultToZero )
+{
+  YAML::Node node;
+  node["t"]["sec"] = YAML::Node();
+  node["t"]["nanosec"] = YAML::Node();
+  node["d"]["sec"] = YAML::Node();
+  node["d"]["nanosec"] = YAML::Node();
+
+  CompoundMessage msg = fish.create_message( "ros_babel_fish_test_msgs/msg/TestMessage" );
+  msg["t"]["sec"] = int32_t( 99 );
+  msg["t"]["nanosec"] = uint32_t( 88 );
+  msg["d"]["sec"] = int32_t( 77 );
+  msg["d"]["nanosec"] = uint32_t( 66 );
+
+  ASSERT_NO_THROW( yaml_to_message( node, msg ) );
+  EXPECT_EQ( msg["t"]["sec"].value<int32_t>(), 0 );
+  EXPECT_EQ( msg["t"]["nanosec"].value<uint32_t>(), 0u );
+  EXPECT_EQ( msg["d"]["sec"].value<int32_t>(), 0 );
+  EXPECT_EQ( msg["d"]["nanosec"].value<uint32_t>(), 0u );
+}
+
 TEST_F( YamlSerializationTest, nullValuesIgnored )
 {
   CompoundMessage msg = fish.create_message( "ros_babel_fish_test_msgs/msg/TestMessage" );

@@ -10,6 +10,7 @@
 #include <ros_babel_fish/messages/value_message.hpp>
 #include <ros_babel_fish/method_invoke_helpers.hpp>
 
+#include <algorithm>
 #include <builtin_interfaces/msg/duration.hpp>
 #include <builtin_interfaces/msg/time.hpp>
 
@@ -199,8 +200,14 @@ void json_to_message( const json &j, ros_babel_fish::CompoundMessage &message )
   if ( message.isTime() ) {
     try {
       builtin_interfaces::msg::Time t;
-      t.sec = j.value( "sec", int32_t( 0 ) );
-      t.nanosec = j.value( "nanosec", uint32_t( 0 ) );
+      if ( j.contains( "sec" ) && !j["sec"].is_null() )
+        t.sec = j["sec"].get<int32_t>();
+      else
+        t.sec = int32_t( 0 );
+      if ( j.contains( "nanosec" ) && !j["nanosec"].is_null() )
+        t.nanosec = j["nanosec"].get<uint32_t>();
+      else
+        t.nanosec = uint32_t( 0 );
       message = t;
     } catch ( const nlohmann::json::exception &e ) {
       throw SerializationException( std::string( e.what() ) );
@@ -210,8 +217,14 @@ void json_to_message( const json &j, ros_babel_fish::CompoundMessage &message )
   if ( message.isDuration() ) {
     try {
       builtin_interfaces::msg::Duration d;
-      d.sec = j.value( "sec", int32_t( 0 ) );
-      d.nanosec = j.value( "nanosec", uint32_t( 0 ) );
+      if ( j.contains( "sec" ) && !j["sec"].is_null() )
+        d.sec = j["sec"].get<int32_t>();
+      else
+        d.sec = int32_t( 0 );
+      if ( j.contains( "nanosec" ) && !j["nanosec"].is_null() )
+        d.nanosec = j["nanosec"].get<uint32_t>();
+      else
+        d.nanosec = uint32_t( 0 );
       message = d;
     } catch ( const nlohmann::json::exception &e ) {
       throw SerializationException( std::string( e.what() ) );

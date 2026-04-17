@@ -499,6 +499,26 @@ TEST_F( JsonSerializationTest, invalidJsonDurationFastPathThrowsBabelFishExcepti
   }
 }
 
+TEST_F( JsonSerializationTest, nullJsonTimeAndDurationFieldsDefaultToZero )
+{
+  auto msg = fish.create_message_shared( "ros_babel_fish_test_msgs/msg/TestMessage" );
+  ( *msg )["t"]["sec"] = int32_t( 99 );
+  ( *msg )["t"]["nanosec"] = uint32_t( 88 );
+  ( *msg )["d"]["sec"] = int32_t( 77 );
+  ( *msg )["d"]["nanosec"] = uint32_t( 66 );
+
+  json j = {
+      { "t", { { "sec", nullptr }, { "nanosec", nullptr } } },
+      { "d", { { "sec", nullptr }, { "nanosec", nullptr } } },
+  };
+
+  ASSERT_NO_THROW( json_to_message( j, *msg ) );
+  EXPECT_EQ( ( *msg )["t"]["sec"].value<int32_t>(), 0 );
+  EXPECT_EQ( ( *msg )["t"]["nanosec"].value<uint32_t>(), 0u );
+  EXPECT_EQ( ( *msg )["d"]["sec"].value<int32_t>(), 0 );
+  EXPECT_EQ( ( *msg )["d"]["nanosec"].value<uint32_t>(), 0u );
+}
+
 TEST_F( JsonSerializationTest, nullValuesIgnored )
 {
   auto msg = fish.create_message_shared( "ros_babel_fish_test_msgs/msg/TestMessage" );
