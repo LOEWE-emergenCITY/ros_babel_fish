@@ -6,16 +6,21 @@
 
 This library enables ROS2 nodes written in C++ to communicate using message types that are unknown at compile time.
 
-You can subscribe and even publish any available message type.  
+You can subscribe and even publish any available message type.
 It also supports both providing and calling services and actions.
 However, the type support for the used message, service or action needs to be available on the machine and in the environment the node is running in.
 
-Please strongly consider whether you actually need this library because there may be a better solution.  
+Please strongly consider whether you actually need this library because there may be a better solution.
 Possible use cases where you do need it are:
 
 * UIs displaying the content of various at compile time unknown messages
 * Plugins for (script) languages that can not access the C++ message definitions without modification
-  * Spot for shameless self-advertising: Check out my [ROS2 QML plugin](https://github.com/StefanFabian/qml_ros2_plugin) which uses this library to allow subscribing, publishing and more directly in QML
+* Serialization and Deserialization from and to JSON and YAML (see [Serialization](#serialization))
+
+> [!NOTE]
+> **Spot for shameless self-advertising**
+> Check out my [QML ROS2 plugin](https://github.com/StefanFabian/qml_ros2_plugin) and [QML6 ROS2 plugin](https://github.com/StefanFabian/qml6_ros2_plugin) which use this library to allow subscribing, publishing and more directly in QML.
+> The latter is the basis for [RQml](https://github.com/StefanFabian/rqml).
 
 ## Scientific Works
 
@@ -91,7 +96,7 @@ compound["position"].set<double>("z", 3.6)
 // the float may not have the required resolution.
 // Assigning, e.g., an int to a uint8 field will only throw if the int is out of bounds (0-255)
 // otherwise a warning will be printed because uint8 is not compatible with all possible values
-// of int. This warning can be disabled as a compile option. 
+// of int. This warning can be disabled as a compile option.
 
 compound["orientation"]["w"] = 0.384;
 compound["orientation"]["x"] = -0.003;
@@ -102,3 +107,50 @@ pub_pose->publish( compound );
 ```
 
 For more examples on how to use this library, check the [examples](ros_babel_fish/examples) folder.
+
+## Serialization
+
+### JSON Serialization
+The `ros_babel_fish_tools` package provides a header-only JSON conversion using the `nlohmann_json` library.
+
+```C++
+#include <ros_babel_fish_tools/nlohmann_json_serialization.hpp>
+
+// Convert a message to JSON
+nlohmann::json j = ros_babel_fish_tools::message_to_json( *msg );
+std::cout << j.dump() << std::endl;
+
+// Convert JSON back to a message
+ros_babel_fish_tools::json_to_message( j, *empty_msg );
+```
+
+### YAML Serialization
+
+The `ros_babel_fish_tools` package also provides YAML conversion using the `yaml-cpp` library through `yaml_cpp_vendor`.
+
+```C++
+#include <ros_babel_fish_tools/yaml_cpp_serialization.hpp>
+
+// Convert a message to YAML
+YAML::Node node = ros_babel_fish_tools::message_to_yaml( *msg );
+std::cout << node << std::endl;
+
+// Convert YAML back to a message
+ros_babel_fish_tools::yaml_to_message( node, *empty_msg );
+```
+
+### Echo Tool
+
+The `ros_babel_fish_echo` tool is a CLI utility that prints the first message of a topic as JSON and then exits.
+
+```bash
+ros2 run ros_babel_fish_tools ros_babel_fish_echo /topic [type]
+```
+
+> [!TIP]
+> Use `--yaml` to change the output format to YAML and `--pretty` (or `-p`) to format the JSON output.
+
+## License
+
+This project is licensed under the MIT License.
+The `ros_babel_fish_tools` package includes the `nlohmann_json` library, which is also licensed under the MIT License and the `utf8cpp` library, which is licensed under the BSL-1.0 License.
