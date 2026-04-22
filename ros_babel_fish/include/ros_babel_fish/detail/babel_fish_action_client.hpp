@@ -49,7 +49,8 @@ public:
           rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
           const std::string &action_name,
           std::shared_ptr<const ros_babel_fish::ActionTypeSupport> type_support,
-          const rcl_action_client_options_t &client_options = rcl_action_client_get_default_options() );
+          const rcl_action_client_options_t &client_options = rcl_action_client_get_default_options(),
+          bool enable_feedback_msg_optimization = false );
 
   ros_babel_fish::CompoundMessage create_goal() const;
 

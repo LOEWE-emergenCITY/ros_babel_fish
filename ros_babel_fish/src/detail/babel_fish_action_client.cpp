@@ -18,9 +18,10 @@ Client<ros_babel_fish::impl::BabelFishAction>::Client(
     rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph,
     rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
     const std::string &action_name, ros_babel_fish::ActionTypeSupport::ConstSharedPtr type_support,
-    const rcl_action_client_options_t &client_options )
+    const rcl_action_client_options_t &client_options, bool enable_feedback_msg_optimization )
     : ClientBase( node_base, node_graph, node_logging, action_name,
-                  &type_support->type_support_handle, client_options ),
+                  &type_support->type_support_handle, client_options,
+                  enable_feedback_msg_optimization ),
       type_support_( std::move( type_support ) )
 {
 }
