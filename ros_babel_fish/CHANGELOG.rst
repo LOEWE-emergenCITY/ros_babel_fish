@@ -2,6 +2,11 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* ActionClient: Added enable_feedback_msg_optimization option to conform to new rolling interface.
+* Contributors: Stefan Fabian
+
 4.26.41 (2026-04-17)
 --------------------
 * Reduce array size to prevent compile errors on MSVC.
