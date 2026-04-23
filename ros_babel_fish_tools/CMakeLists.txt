@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
-project(ros_babel_fish_tools VERSION 0.1.0)
-set(CMAKE_CXX_STANDARD 17)
+project(ros_babel_fish_tools VERSION 4.26.43)
+# Default to C++20
+if(NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 20)
+endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)

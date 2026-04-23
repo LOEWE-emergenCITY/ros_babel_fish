@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
-project(ros_babel_fish VERSION 3.25.2)
-set(CMAKE_CXX_STANDARD 17)
+project(ros_babel_fish VERSION 4.26.43)
+# Default to C++20
+if(NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 20)
+endif()
 
 # If the value doesn't fit, an exception is thrown in any case because that could result in unexpected behavior and can not be ignored lightly
 option(WARN_ON_INCOMPATIBLE_TYPE "If ON a warning is printed if a value message is set or accessed with a type that does not allow casting without loss of information" ON)

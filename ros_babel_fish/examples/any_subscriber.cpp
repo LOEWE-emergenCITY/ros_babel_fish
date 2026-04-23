@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <chrono>
+#include <cstdint>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/point32.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -115,6 +116,20 @@ template<>
 void printToStdOut<uint8_t>( const uint8_t &val )
 {
   std::cout << static_cast<int>( val ); // Cast to int for proper displaying
+}
+
+template<>
+void printToStdOut<char16_t>( const char16_t &val )
+{
+  // std::ostream << char16_t is deleted in C++20 for narrow streams.
+  std::cout << static_cast<std::uint_least16_t>( val );
+}
+
+template<>
+void printToStdOut<char32_t>( const char32_t &val )
+{
+  // std::ostream << char32_t is deleted in C++20 for narrow streams.
+  std::cout << static_cast<std::uint_least32_t>( val );
 }
 
 template<typename T>
