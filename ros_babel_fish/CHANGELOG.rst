@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+4.26.43 (2026-04-23)
+--------------------
 * C++20 compatibility.
 * Contributors: Stefan Fabian
 

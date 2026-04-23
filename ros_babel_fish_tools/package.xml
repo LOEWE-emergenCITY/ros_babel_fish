@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>ros_babel_fish_tools</name>
-  <version>4.26.42</version>
+  <version>4.26.43</version>
   <description>
     Tooling for ROS 2 built on ros_babel_fish.
     Provides header-only JSON and YAML serialization for dynamic messages and a CLI tool to echo topics.
