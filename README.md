@@ -150,6 +150,23 @@ ros2 run ros_babel_fish_tools ros_babel_fish_echo /topic [type]
 > [!TIP]
 > Use `--yaml` to change the output format to YAML and `--pretty` (or `-p`) to format the JSON output.
 
+### Stats Tool
+
+The `stats` tool subscribes to a topic and periodically reports message rate, latency, deserialization time and bandwidth.
+Bandwidth and deserialization time are measured for any message type; latency requires the message to have a `std_msgs/Header` `header` field and is reported as `n/a` otherwise.
+
+```bash
+ros2 run ros_babel_fish_tools stats /topic [type]
+```
+
+Options:
+
+| Option | Description |
+| --- | --- |
+| `--window <seconds>` | Reporting interval in seconds (default: 5) |
+| `--out <file>` | Write per-message measurements (receive time, latency, deserialize time, size) to a CSV file |
+| `-h`, `--help` | Show the help message |
+
 ## License
 
 This project is licensed under the MIT License.
