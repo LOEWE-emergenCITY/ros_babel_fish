@@ -1,10 +1,10 @@
 // Copyright (c) 2026 Stefan Fabian. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include "ros_babel_fish_tools/cli.hpp"
 #include "ros_babel_fish_tools/nlohmann_json_serialization.hpp"
 #include "ros_babel_fish_tools/yaml_cpp_serialization.hpp"
 
-#include <cstdlib>
 #include <iostream>
 #include <rclcpp/rclcpp.hpp>
 
@@ -25,11 +25,7 @@ int main( int argc, char **argv )
 {
   // Turn off Zenoh logging to avoid additional zenoh output.
   // This node should only output the message, so any additional output is undesirable.
-#ifdef _WIN32
-  _putenv_s( "RUST_LOG", "off" );
-#else
-  setenv( "RUST_LOG", "off", 1 );
-#endif
+  silence_rmw_logging();
   rclcpp::init( argc, argv );
 
   std::string topic;
