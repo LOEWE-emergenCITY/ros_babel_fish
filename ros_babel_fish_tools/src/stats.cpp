@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -152,6 +153,17 @@ int main( int argc, char **argv )
 
   std::ofstream csv;
   if ( !out_path.empty() ) {
+    if ( std::filesystem::exists( out_path ) ) {
+      std::cout << "Output file '" << out_path
+                << "' already exists. Overwrite? [y/N]: " << std::flush;
+      std::string answer;
+      // A non-interactive stdin (EOF) leaves answer empty, i.e. defaults to not overwriting.
+      std::getline( std::cin, answer );
+      if ( answer != "y" && answer != "Y" && answer != "yes" ) {
+        std::cerr << "Aborting; output file not overwritten." << std::endl;
+        return 1;
+      }
+    }
     csv.open( out_path );
     if ( !csv.is_open() ) {
       std::cerr << "Failed to open output file: " << out_path << std::endl;
