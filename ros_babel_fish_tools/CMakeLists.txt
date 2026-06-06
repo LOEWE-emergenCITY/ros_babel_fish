@@ -31,6 +31,9 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
 add_executable(ros_babel_fish_echo src/ros_babel_fish_echo.cpp)
 target_link_libraries(ros_babel_fish_echo PRIVATE ${PROJECT_NAME} rclcpp::rclcpp)
 
+add_executable(stats src/stats.cpp)
+target_link_libraries(stats PRIVATE ${PROJECT_NAME} rclcpp::rclcpp)
+
 #############
 ## Install ##
 #############
@@ -41,7 +44,7 @@ install(
 )
 
 install(
-  TARGETS ros_babel_fish_echo
+  TARGETS ros_babel_fish_echo stats
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
