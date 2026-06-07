@@ -65,7 +65,7 @@ struct WindowStats {
 
 std::string format_bytes_per_sec( double bytes_per_sec )
 {
-  const char *units[] = { "B/s", "KB/s", "MB/s", "GB/s" };
+  const char *units[] = { "B/s", "KiB/s", "MiB/s", "GiB/s" };
   int unit = 0;
   while ( bytes_per_sec >= 1024.0 && unit < 3 ) {
     bytes_per_sec /= 1024.0;
