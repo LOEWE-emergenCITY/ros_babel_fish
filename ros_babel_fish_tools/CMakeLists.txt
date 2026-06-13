@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15)
 project(ros_babel_fish_tools VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -10,6 +10,11 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(ros_babel_fish REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
+
+# lz4 and zstd are used only by the stats tool's --compress option.
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LZ4 REQUIRED IMPORTED_TARGET liblz4)
+pkg_check_modules(ZSTD REQUIRED IMPORTED_TARGET libzstd)
 
 ###########
 ## Build ##
@@ -29,7 +34,7 @@ add_executable(ros_babel_fish_echo src/ros_babel_fish_echo.cpp)
 target_link_libraries(ros_babel_fish_echo PRIVATE ${PROJECT_NAME} rclcpp::rclcpp)
 
 add_executable(stats src/stats.cpp)
-target_link_libraries(stats PRIVATE ${PROJECT_NAME} rclcpp::rclcpp)
+target_link_libraries(stats PRIVATE ${PROJECT_NAME} rclcpp::rclcpp PkgConfig::LZ4 PkgConfig::ZSTD)
 
 #############
 ## Install ##
