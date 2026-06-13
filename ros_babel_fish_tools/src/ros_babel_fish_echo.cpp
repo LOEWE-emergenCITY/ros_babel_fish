@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <rclcpp/rclcpp.hpp>
+#include <string>
+#include <vector>
 
 using namespace ros_babel_fish;
 using namespace ros_babel_fish_tools;
@@ -19,6 +21,7 @@ void print_usage( const char *name )
   std::cerr << "  --json        Output as JSON (default)" << std::endl;
   std::cerr << "  --yaml        Output as YAML" << std::endl;
   std::cerr << "  --pretty, -p  Pretty print the output" << std::endl;
+  std::cerr << "  --ros-args ...  Pass ROS arguments (e.g. -p use_sim_time:=true)" << std::endl;
 }
 
 int main( int argc, char **argv )
@@ -26,14 +29,16 @@ int main( int argc, char **argv )
   // Turn off Zenoh logging to avoid additional zenoh output.
   // This node should only output the message, so any additional output is undesirable.
   silence_rmw_logging();
-  rclcpp::init( argc, argv );
+  // Strip ROS arguments (e.g. --ros-args -p use_sim_time:=true) before our own parsing; the node
+  // picks them up automatically via the global context.
+  const std::vector<std::string> args = rclcpp::init_and_remove_ros_arguments( argc, argv );
 
   std::string topic;
   std::string type;
   bool output_json = true;
   bool pretty = false;
-  for ( int i = 1; i < argc; ++i ) {
-    std::string arg = argv[i];
+  for ( size_t i = 1; i < args.size(); ++i ) {
+    const std::string &arg = args[i];
     if ( arg == "-h" || arg == "--help" ) {
       print_usage( argv[0] );
       return 0;
