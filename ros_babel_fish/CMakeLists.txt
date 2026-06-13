@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15)
 project(ros_babel_fish VERSION 4.26.43)
 # Default to C++20
 if(NOT CMAKE_CXX_STANDARD)
