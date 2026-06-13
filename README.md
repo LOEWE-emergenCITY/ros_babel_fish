@@ -165,6 +165,8 @@ Options:
 | --- | --- |
 | `--window <seconds>` | Reporting interval in seconds (default: 5) |
 | `--out <file>` | Write per-message measurements (receive time, latency, deserialize time, size) to a CSV file |
+| `--compress <algo>` | Also report compressed bandwidth and (de)compression time; `algo` is `lz4` or `zstd` |
+| `--ros-args ...` | Pass ROS arguments (e.g. `-p use_sim_time:=true`) |
 | `-h`, `--help` | Show the help message |
 
 ## License

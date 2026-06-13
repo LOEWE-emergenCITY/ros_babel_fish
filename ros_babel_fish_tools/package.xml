@@ -22,7 +22,10 @@
   <depend>rclcpp</depend>
   <depend>ros_babel_fish</depend>
   <depend>yaml_cpp_vendor</depend>
+  <depend>libzstd-dev</depend>
 
+  <build_depend>liblz4-dev</build_depend>
+  <exec_depend>liblz4</exec_depend>
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>geometry_msgs</test_depend>
   <test_depend>std_msgs</test_depend>
