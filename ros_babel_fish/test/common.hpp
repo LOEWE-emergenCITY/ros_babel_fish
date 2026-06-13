@@ -7,6 +7,8 @@
 
 #include <ros_babel_fish_test_msgs/msg/test_array.hpp>
 
+#include <rosidl_buffer/buffer.hpp>
+
 #include <random>
 #include <vector>
 
@@ -33,6 +35,12 @@ void fillArray( std::vector<bool> &msg, unsigned seed )
   size_t length = length_distribution( generator );
   msg.reserve( length );
   for ( size_t i = 0; i < length; ++i ) { msg.push_back( distribution( generator ) == 1 ); }
+}
+
+template<typename T>
+void fillArray( rosidl::Buffer<T> &msg, unsigned seed )
+{
+  fillArray( static_cast<std::vector<T> &>( msg ), seed );
 }
 
 template<typename T, size_t L>

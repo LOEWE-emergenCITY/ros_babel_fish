@@ -149,7 +149,12 @@ public:
         throw std::length_error( "Exceeded upper bound!" );
       }
     }
-    reinterpret_cast<std::vector<T> *>( data_.get() )->push_back( value );
+    // resize() + assign() route through the introspection function pointers when present
+    // (and fall back to a std::vector cast only when they are null), so this works for
+    // rosidl::Buffer-backed arrays (e.g. uint8[]) as well as plain std::vector members.
+    const size_t index = size();
+    resize( index + 1 );
+    assign( index, value );
   }
 
   //! Alias for push_back

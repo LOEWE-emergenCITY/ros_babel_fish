@@ -293,6 +293,13 @@ bool MessageContentEqualImpl( const ros_babel_fish::Message &a, const std::vecto
   return ArrayContentEqualImpl( arr.template as<ArrayMessage<T>>(), b, path, result );
 }
 
+template<typename T, typename A>
+bool MessageContentEqualImpl( const ros_babel_fish::Message &a, const rosidl::Buffer<T, A> &b,
+                              const std::string &path, ::testing::AssertionResult &result )
+{
+  return MessageContentEqualImpl( a, static_cast<const std::vector<T, A> &>( b ), path, result );
+}
+
 template<typename T, size_t L>
 bool MessageContentEqualImpl( const ros_babel_fish::Message &a, const std::array<T, L> &b,
                               const std::string &path, ::testing::AssertionResult &result )
