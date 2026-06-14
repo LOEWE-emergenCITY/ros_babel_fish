@@ -11,7 +11,9 @@
 #include <rosidl_typesupport_introspection_cpp/identifier.hpp>
 #include <rosidl_typesupport_introspection_cpp/service_introspection.hpp>
 
+#include <mutex>
 #include <sstream>
+#include <unordered_map>
 
 namespace ros_babel_fish
 {
@@ -91,7 +93,18 @@ get_typesupport_library( const std::string &type, const std::string &typesupport
   try {
     auto package_name = std::get<0>( extract_type_identifier( type ) );
     auto library_path = get_typesupport_library_path( package_name, typesupport_identifier );
-    return std::make_shared<rcpputils::SharedLibrary>( library_path );
+    // Type-support libraries are cached process-globally and never unloaded for the lifetime of the
+    // process: the middleware (e.g. rmw_zenoh) may dereference the static type-support data they
+    // contain while it is being torn down, after the owning BabelFish/entity is already gone.
+    // Unloading on BabelFish destruction leaves those references dangling.
+    static std::mutex mutex;
+    static std::unordered_map<std::string, std::shared_ptr<rcpputils::SharedLibrary>> cache;
+    std::lock_guard<std::mutex> lock( mutex );
+    if ( auto it = cache.find( library_path ); it != cache.end() )
+      return it->second;
+    auto library = std::make_shared<rcpputils::SharedLibrary>( library_path );
+    cache.emplace( library_path, library );
+    return library;
   } catch ( TypeSupportException &e ) {
     throw TypeSupportException( "Failed to get typesupport library for message type '" + type +
                                 "': " + e.what() );

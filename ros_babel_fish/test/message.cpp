@@ -367,5 +367,10 @@ int main( int argc, char **argv )
 {
   testing::InitGoogleTest( &argc, argv );
   rclcpp::init( argc, argv );
-  return RUN_ALL_TESTS();
+  int result = RUN_ALL_TESTS();
+  // Shut down rclcpp before the process exits so the middleware (e.g. rmw_zenoh) is
+  // torn down at a controlled point instead of in a static destructor at process exit,
+  // which otherwise crashes the process and prevents the gtest result file from being verified.
+  rclcpp::shutdown();
+  return result;
 }

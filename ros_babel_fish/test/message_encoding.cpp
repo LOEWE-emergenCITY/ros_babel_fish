@@ -317,6 +317,10 @@ int main( int argc, char **argv )
   rclcpp::init( argc, argv );
   node = std::make_shared<rclcpp::Node>( "test_message_decoding" );
   int result = RUN_ALL_TESTS();
+  // Shut down rclcpp before the process exits so the middleware (e.g. rmw_zenoh) is
+  // torn down at a controlled point instead of in a static destructor at process exit,
+  // which otherwise crashes the process and prevents the gtest result file from being verified.
+  rclcpp::shutdown();
   node.reset();
   return result;
 }
