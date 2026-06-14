@@ -1,9 +1,9 @@
 name: Lint & Test
 on:
   push:
-    branches: [ rolling ]
+    branches: [ lyrical ]
   pull_request:
-    branches: [ rolling ]
+    branches: [ lyrical ]
 defaults:
   run:
     shell: bash
@@ -37,7 +37,7 @@ jobs:
     strategy:
       matrix:
         setup:
-          - rosdistro: rolling
+          - rosdistro: lyrical
             os: ubuntu-26.04
     steps:
       - name: install build tools
