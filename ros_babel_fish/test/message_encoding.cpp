@@ -9,7 +9,10 @@
 #include <gtest/gtest.h>
 #include <rclcpp/rclcpp.hpp>
 
+#include <chrono>
+#include <map>
 #include <random>
+#include <thread>
 
 using namespace ros_babel_fish;
 
@@ -18,16 +21,16 @@ std::shared_ptr<rclcpp::Node> node;
 template<typename Message>
 std::shared_ptr<Message> waitForMessage( const std::string &topic )
 {
-  rclcpp::QoS qos = rclcpp::QoS( 1 ).transient_local();
-  auto sub = node->create_subscription<Message>( topic, qos, []( std::unique_ptr<Message> ) { } );
-  rclcpp::ThreadSafeWaitSet wait_set(
-      std::vector<rclcpp::ThreadSafeWaitSet::SubscriptionEntry>{ { sub } } );
-  auto wait_result = wait_set.template wait();
-  if ( wait_result.kind() != rclcpp::WaitResultKind::Ready )
-    return nullptr;
-  std::shared_ptr<Message> result = std::make_shared<Message>();
-  rclcpp::MessageInfo info;
-  if ( !sub->take( *result, info ) )
+  std::shared_ptr<Message> result;
+  auto cond = std::make_shared<rclcpp::GuardCondition>();
+  auto sub = node->create_subscription<Message>( topic, rclcpp::QoS( 1 ).transient_local(),
+                                                 [&result, cond]( std::shared_ptr<Message> msg ) {
+                                                   result = std::move( msg );
+                                                   cond->trigger();
+                                                 } );
+  rclcpp::WaitSet wait_set;
+  wait_set.add_guard_condition( cond );
+  if ( wait_set.wait( std::chrono::seconds( 10 ) ).kind() != rclcpp::WaitResultKind::Ready )
     return nullptr;
   return result;
 }
@@ -130,18 +133,14 @@ class MessageEncodingTest : public ::testing::Test
 protected:
   void publish( const std::string &topic, const CompoundMessage::SharedPtr &msg )
   {
-    BabelFishPublisher::SharedPtr pub =
+    publishers_[topic] =
         fish->create_publisher( *node, topic, msg->name(), rclcpp::QoS( 1 ).transient_local() );
-    pub->publish( *msg );
-    publishers_.push_back( pub );
+    messages_[topic] = msg;
   }
 
   void publish( const std::string &topic, const CompoundMessage &msg )
   {
-    BabelFishPublisher::SharedPtr pub =
-        fish->create_publisher( *node, topic, msg.name(), rclcpp::QoS( 1 ).transient_local() );
-    pub->publish( msg );
-    publishers_.push_back( pub );
+    publish( topic, std::make_shared<CompoundMessage>( msg ) );
   }
 
   void SetUp() override
@@ -250,9 +249,15 @@ protected:
         fish->create_message_shared( "ros_babel_fish_test_msgs/msg/TestSubArray" );
     *sub_test_array = ( *test_array_msg )["subarrays"].as<CompoundArrayMessage>()[0];
     publish( "/test_message_encoding/sub_test_array", sub_test_array );
+
+    publish_timer_ = node->create_wall_timer( std::chrono::milliseconds( 50 ), [this]() {
+      for ( const auto &[topic, pub] : publishers_ ) pub->publish( *messages_[topic] );
+    } );
   }
 
-  std::vector<BabelFishPublisher::SharedPtr> publishers_;
+  std::map<std::string, BabelFishPublisher::SharedPtr> publishers_;
+  std::map<std::string, CompoundMessage::SharedPtr> messages_;
+  rclcpp::TimerBase::SharedPtr publish_timer_;
 
   BabelFish::SharedPtr fish;
 
@@ -316,11 +321,14 @@ int main( int argc, char **argv )
   testing::InitGoogleTest( &argc, argv );
   rclcpp::init( argc, argv );
   node = std::make_shared<rclcpp::Node>( "test_message_decoding" );
+  // Spin the node in a background thread so the per-fixture publish timer fires.
+  std::thread spinner( []() { rclcpp::spin( node ); } );
   int result = RUN_ALL_TESTS();
   // Shut down rclcpp before the process exits so the middleware (e.g. rmw_zenoh) is
   // torn down at a controlled point instead of in a static destructor at process exit,
   // which otherwise crashes the process and prevents the gtest result file from being verified.
   rclcpp::shutdown();
+  spinner.join();
   node.reset();
   return result;
 }

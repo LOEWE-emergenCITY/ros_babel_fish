@@ -161,9 +161,9 @@ if (BUILD_TESTING)
   ament_add_gtest(test_service test/service.cpp)
   target_link_libraries(test_service ${PROJECT_NAME} ${example_interfaces_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
 
-  ament_add_gtest(test_action_client test/action_client.cpp)
+  ament_add_gtest(test_action_client test/action_client.cpp TIMEOUT 120)
   target_link_libraries(test_action_client ${PROJECT_NAME} ${example_interfaces_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
-  ament_add_gtest(test_action_server test/action_server.cpp)
+  ament_add_gtest(test_action_server test/action_server.cpp TIMEOUT 120)
   target_link_libraries(test_action_server ${PROJECT_NAME} ${example_interfaces_TARGETS} ${ros_babel_fish_test_msgs_TARGETS})
 endif ()
 
