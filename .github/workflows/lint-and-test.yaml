@@ -1,9 +1,9 @@
 name: Lint & Test
 on:
   push:
-    branches: [ rolling ]
+    branches: [ kilted ]
   pull_request:
-    branches: [ rolling ]
+    branches: [ kilted ]
 defaults:
   run:
     shell: bash
@@ -37,8 +37,8 @@ jobs:
     strategy:
       matrix:
         setup:
-          - rosdistro: rolling
-            os: ubuntu-latest
+          - rosdistro: kilted
+            os: ubuntu-25.04
     steps:
       - name: install build tools
         run: |
