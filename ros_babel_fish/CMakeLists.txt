@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15)
 project(ros_babel_fish VERSION 2.25.2)
 set(CMAKE_CXX_STANDARD 17)
 
