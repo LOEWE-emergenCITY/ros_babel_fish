@@ -83,10 +83,11 @@ void BabelFishService::handle_request( const std::shared_ptr<rmw_request_id_t> &
                                        const std::shared_ptr<void> &request )
 {
   auto typed_request = CompoundMessage::make_shared( type_support_->request(), request );
-  auto response = CompoundMessage::make_shared( type_support_->response() );
-  // Defer variants do not fill the response and return false, in which case the response is sent
-  // later by the user via send_response. Immediate variants fill it and request the auto-send.
-  if ( callback_.dispatch( this->shared_from_this(), request_header, typed_request, response ) )
+  // Defer variants do not fill a response and return nullptr, in which case the response is sent
+  // later by the user via send_response. Immediate variants return the filled response to send.
+  auto response = callback_.dispatch( this->shared_from_this(), request_header, typed_request,
+                                      type_support_->response() );
+  if ( response )
     send_response( *request_header, *response );
 }
 
