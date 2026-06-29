@@ -65,6 +65,46 @@ TEST( ServiceTest, server )
   EXPECT_EQ( result->sum, 512 + 314 + 1337 );
 }
 
+TEST( ServiceTest, deferredResponse )
+{
+  BabelFish fish;
+  auto type_support = fish.get_service_type_support( "example_interfaces/srv/AddTwoInts" );
+  std::shared_ptr<rmw_request_id_t> stored_header;
+  CompoundMessage::SharedPtr stored_request;
+  rclcpp::TimerBase::SharedPtr send_timer;
+  BabelFishService::SharedPtr service;
+  // Register the defer variant (header, request) which must NOT auto-send. The response is sent
+  // later, back on the spinner thread, via a one-shot wall timer so take_request and send_response
+  // stay on the same thread.
+  service = fish.create_service(
+      *node, "/test_service_server/deferred_two_ints", "example_interfaces/srv/AddTwoInts",
+      [&]( std::shared_ptr<rmw_request_id_t> header, CompoundMessage::SharedPtr request ) {
+        stored_header = std::move( header );
+        stored_request = std::move( request );
+        send_timer = node->create_wall_timer( 250ms, [&]() {
+          send_timer->cancel();
+          auto response = CompoundMessage::make_shared( type_support->response() );
+          response->set( "sum", stored_request->get<int64_t>( "a" ) +
+                                    stored_request->get<int64_t>( "b" ) + 100 );
+          service->send_response( *stored_header, *response );
+        } );
+      } );
+  auto req = std::make_shared<example_interfaces::srv::AddTwoInts::Request>();
+  req->a = 7;
+  req->b = 5;
+  auto client = node->create_client<example_interfaces::srv::AddTwoInts>(
+      "test_service_server/deferred_two_ints" );
+  ASSERT_TRUE( client->wait_for_service( 5s ) );
+  auto response_future = client->async_send_request( req );
+  // Regression guard: with the auto-send disabled for defer variants, the client must not receive
+  // an (empty) response before the deferred send actually fires.
+  EXPECT_EQ( response_future.wait_for( 100ms ), std::future_status::timeout );
+  ASSERT_EQ( response_future.wait_for( 5s ), std::future_status::ready );
+  auto result = response_future.get();
+  ASSERT_NE( result, nullptr );
+  EXPECT_EQ( result->sum, 7 + 5 + 100 );
+}
+
 int main( int argc, char **argv )
 {
   testing::InitGoogleTest( &argc, argv );
