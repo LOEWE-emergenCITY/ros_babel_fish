@@ -84,8 +84,10 @@ void BabelFishService::handle_request( const std::shared_ptr<rmw_request_id_t> &
 {
   auto typed_request = CompoundMessage::make_shared( type_support_->request(), request );
   auto response = CompoundMessage::make_shared( type_support_->response() );
-  callback_.dispatch( this->shared_from_this(), request_header, typed_request, response );
-  send_response( *request_header, *response );
+  // Defer variants do not fill the response and return false, in which case the response is sent
+  // later by the user via send_response. Immediate variants fill it and request the auto-send.
+  if ( callback_.dispatch( this->shared_from_this(), request_header, typed_request, response ) )
+    send_response( *request_header, *response );
 }
 
 void BabelFishService::configure_introspection( const rclcpp::Clock::SharedPtr &clock,
