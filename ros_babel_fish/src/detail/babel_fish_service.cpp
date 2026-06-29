@@ -82,8 +82,11 @@ void BabelFishService::handle_request( std::shared_ptr<rmw_request_id_t> request
                                        std::shared_ptr<void> request )
 {
   auto typed_request = CompoundMessage::make_shared( type_support_->request(), request );
-  auto response = CompoundMessage::make_shared( type_support_->response() );
-  callback_.dispatch( this->shared_from_this(), request_header, typed_request, response );
-  send_response( *request_header, *response );
+  // Defer variants do not fill a response and return nullptr, in which case the response is sent
+  // later by the user via send_response. Immediate variants return the filled response to send.
+  auto response = callback_.dispatch( this->shared_from_this(), request_header, typed_request,
+                                      type_support_->response() );
+  if ( response )
+    send_response( *request_header, *response );
 }
 } // namespace ros_babel_fish
