@@ -9,11 +9,97 @@
 #include "ros_babel_fish/exceptions/babel_fish_exception.hpp"
 #include "ros_babel_fish/idl/providers/local_type_support_provider.hpp"
 
+#include <rclcpp/create_publisher.hpp>
+#include <rclcpp/create_timer.hpp>
+#include <rclcpp/detail/qos_parameters.hpp>
+#include <rclcpp/detail/resolve_enable_topic_statistics.hpp>
 #include <rclcpp/node.hpp>
+#include <rclcpp/topic_statistics/subscription_topic_statistics.hpp>
 #include <rclcpp/wait_set.hpp>
+#include <statistics_msgs/msg/metrics_message.hpp>
 
 namespace ros_babel_fish
 {
+
+namespace
+{
+
+/*!
+ * Creates the topic statistics collector, publisher and publish timer for a subscription if topic statistics
+ * are enabled in the options (or by node default). Mirrors rclcpp::detail::create_subscription.
+ * @return The topic statistics instance or nullptr if topic statistics are disabled.
+ */
+std::shared_ptr<rclcpp::topic_statistics::SubscriptionTopicStatistics>
+create_subscription_topic_statistics( NodeInterfaces &node,
+                                      const rclcpp::SubscriptionOptions &options )
+{
+  auto node_base = node.get_node_base_interface();
+  if ( !rclcpp::detail::resolve_enable_topic_statistics( options, *node_base ) )
+    return nullptr;
+
+  if ( options.topic_stats_options.publish_period <= std::chrono::milliseconds( 0 ) ) {
+    throw std::invalid_argument(
+        "topic_stats_options.publish_period must be greater than 0, specified value of " +
+        std::to_string( options.topic_stats_options.publish_period.count() ) + " ms" );
+  }
+
+  auto node_parameters = node.get_node_parameters_interface();
+  auto node_topics = node.get_node_topics_interface();
+  auto publisher = rclcpp::create_publisher<statistics_msgs::msg::MetricsMessage>(
+      node_parameters, node_topics, options.topic_stats_options.publish_topic,
+      options.topic_stats_options.qos );
+
+  auto subscription_topic_stats =
+      std::make_shared<rclcpp::topic_statistics::SubscriptionTopicStatistics>( node_base->get_name(),
+                                                                               publisher );
+
+  std::weak_ptr<rclcpp::topic_statistics::SubscriptionTopicStatistics> weak_subscription_topic_stats(
+      subscription_topic_stats );
+  auto publish_callback = [weak_subscription_topic_stats]() {
+    if ( auto stats = weak_subscription_topic_stats.lock(); stats != nullptr ) {
+      stats->publish_message_and_reset_measurements();
+    }
+  };
+
+  auto timer = rclcpp::create_wall_timer( std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                              options.topic_stats_options.publish_period ),
+                                          publish_callback, options.callback_group, node_base.get(),
+                                          node.get_node_timers_interface().get() );
+
+  subscription_topic_stats->set_publisher_timer( timer );
+  return subscription_topic_stats;
+}
+
+/*!
+ * Applies QoS overrides from parameters if requested via options.qos_overriding_options.
+ * Mirrors rclcpp::create_publisher / rclcpp::create_subscription which declare
+ * qos_overrides.<topic>.<entity>.* parameters and use their values instead of the default qos.
+ */
+template<typename EntityQosParametersTraits>
+rclcpp::QoS resolve_qos_overrides( NodeInterfaces &node,
+                                   const rclcpp::QosOverridingOptions &qos_overriding_options,
+                                   const std::string &topic, const rclcpp::QoS &default_qos,
+                                   EntityQosParametersTraits traits )
+{
+  if ( qos_overriding_options.get_policy_kinds().empty() )
+    return default_qos;
+  auto node_parameters = node.get_node_parameters_interface();
+  return rclcpp::detail::declare_qos_parameters(
+      qos_overriding_options, node_parameters,
+      node.get_node_topics_interface()->resolve_topic_name( topic ), default_qos, traits );
+}
+
+void check_intra_process_setting( rclcpp::IntraProcessSetting setting, const char *entity )
+{
+  // Intra-process communication is not supported for type-erased messages.
+  // NodeDefault silently falls back to inter-process, an explicit request is ignored with a warning.
+  if ( setting == rclcpp::IntraProcessSetting::Enable ) {
+    RBF2_WARN( "%s requested intra-process communication which is not supported by ros_babel_fish. "
+               "Falling back to inter-process communication.",
+               entity );
+  }
+}
+} // namespace
 
 BabelFish::BabelFish()
 {
@@ -28,14 +114,13 @@ BabelFish::BabelFish( std::vector<TypeSupportProvider::SharedPtr> type_support_p
 BabelFish::~BabelFish() = default;
 
 BabelFishSubscription::SharedPtr BabelFish::create_subscription(
-    rclcpp::Node &node, const std::string &topic, const rclcpp::QoS &qos,
+    NodeInterfaces node, const std::string &topic, const rclcpp::QoS &qos,
     rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
-    rclcpp::CallbackGroup::SharedPtr group, rclcpp::SubscriptionOptions options,
-    std::chrono::nanoseconds timeout )
+    rclcpp::SubscriptionOptions options, std::chrono::nanoseconds timeout )
 {
-  const std::string &resolved_topic = resolve_topic( node, topic );
+  const std::string resolved_topic = resolve_topic( node, topic );
   std::vector<std::string> types;
-  if ( !wait_for_topic_and_type( node, resolved_topic, types, timeout ) )
+  if ( !wait_for_topic_and_type( node, topic, types, timeout ) )
     return nullptr;
   if ( types.empty() ) {
     RBF2_ERROR( "Could not subscribe to '%s'.Topic is available but has no type!",
@@ -48,41 +133,33 @@ BabelFishSubscription::SharedPtr BabelFish::create_subscription(
                resolved_topic.c_str(), types[0].c_str() );
   }
 
-  MessageTypeSupport::ConstSharedPtr type_support = get_message_type_support( types[0] );
-  if ( type_support == nullptr ) {
-    throw BabelFishException( "Failed to create a subscriber for type: " + types[0] +
-                              ". Type not found!" );
-  }
-  try {
-    // TODO Add support for topic statistics?
-    auto subscription = std::make_shared<BabelFishSubscription>(
-        node.get_node_base_interface().get(), type_support, topic, qos, std::move( callback ),
-        std::move( options ) );
-    node.get_node_topics_interface()->add_subscription( subscription, std::move( group ) );
-    return subscription;
-  } catch ( const std::exception &ex ) {
-    throw BabelFishException( "Failed to create Subscription: " + std::string( ex.what() ) );
-  }
+  return create_subscription( std::move( node ), topic, types[0], qos, std::move( callback ),
+                              std::move( options ) );
 }
 
 BabelFishSubscription::SharedPtr BabelFish::create_subscription(
-    rclcpp::Node &node, const std::string &topic, const std::string &type, const rclcpp::QoS &qos,
+    NodeInterfaces node, const std::string &topic, const std::string &type, const rclcpp::QoS &qos,
     rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
-    rclcpp::CallbackGroup::SharedPtr group, rclcpp::SubscriptionOptions options )
+    rclcpp::SubscriptionOptions options )
 {
-  const std::string &resolved_topic = resolve_topic( node, topic );
-
+  check_intra_process_setting( options.use_intra_process_comm, "Subscription" );
+  // Not supported by ROS2 for serialized messages, make sure the node default doesn't enable it.
+  options.use_intra_process_comm = rclcpp::IntraProcessSetting::Disable;
   MessageTypeSupport::ConstSharedPtr type_support = get_message_type_support( type );
   if ( type_support == nullptr ) {
     throw BabelFishException( "Failed to create a subscriber for type: " + type +
                               ". Type not found!" );
   }
   try {
+    auto subscription_topic_stats = create_subscription_topic_statistics( node, options );
+    const rclcpp::QoS actual_qos =
+        resolve_qos_overrides( node, options.qos_overriding_options, topic, qos,
+                               rclcpp::detail::SubscriptionQosParametersTraits{} );
     auto subscription = std::make_shared<BabelFishSubscription>(
-        node.get_node_base_interface().get(), type_support, topic, qos, std::move( callback ),
-        std::move( options ) );
+        node.get_node_base_interface().get(), type_support, topic, actual_qos,
+        std::move( callback ), options, std::move( subscription_topic_stats ) );
 
-    node.get_node_topics_interface()->add_subscription( subscription, std::move( group ) );
+    node.get_node_topics_interface()->add_subscription( subscription, options.callback_group );
     return subscription;
   } catch ( const std::exception &ex ) {
     throw BabelFishException( "Failed to create Subscription: " + std::string( ex.what() ) );
@@ -90,51 +167,51 @@ BabelFishSubscription::SharedPtr BabelFish::create_subscription(
 }
 
 BabelFishPublisher::SharedPtr
-BabelFish::create_publisher( rclcpp::Node &node, const std::string &topic, const std::string &type,
+BabelFish::create_publisher( NodeInterfaces node, const std::string &topic, const std::string &type,
                              const rclcpp::QoS &qos, rclcpp::PublisherOptions options )
 {
-  // Extract the NodeTopicsInterface from the NodeT.
-  using rclcpp::node_interfaces::get_node_topics_interface;
-  auto node_topics = get_node_topics_interface( node );
+  auto node_topics = node.get_node_topics_interface();
 
-  options.use_intra_process_comm =
-      rclcpp::IntraProcessSetting::Disable; // Currently not supported by ROS2 for serialized messages
+  check_intra_process_setting( options.use_intra_process_comm, "Publisher" );
+  // Not supported by ROS2 for serialized messages, make sure the node default doesn't enable it.
+  options.use_intra_process_comm = rclcpp::IntraProcessSetting::Disable;
   MessageTypeSupport::ConstSharedPtr type_support = get_message_type_support( type );
   if ( type_support == nullptr ) {
     throw BabelFishException( "Failed to create a publisher for type: " + type + ". Type not found!" );
   }
-  auto result = BabelFishPublisher::make_shared(
-      node.get_node_base_interface().get(), type_support->type_support_handle, topic, qos, options );
-  result->post_init_setup( node.get_node_base_interface().get(), topic, qos, options );
+  const rclcpp::QoS actual_qos =
+      resolve_qos_overrides( node, options.qos_overriding_options, topic, qos,
+                             rclcpp::detail::PublisherQosParametersTraits{} );
+  auto result = BabelFishPublisher::make_shared( node.get_node_base_interface().get(),
+                                                 type_support->type_support_handle, topic,
+                                                 actual_qos, options );
+  result->post_init_setup( node.get_node_base_interface().get(), topic, actual_qos, options );
   // Add the publisher to the node topics interface.
   node_topics->add_publisher( result, options.callback_group );
   return result;
 }
 
-BabelFishService::SharedPtr BabelFish::create_service( rclcpp::Node &node,
-                                                       const std::string &service_name,
-                                                       const std::string &type,
-                                                       AnyServiceCallback callback,
-                                                       const rmw_qos_profile_t &qos_profile,
-                                                       rclcpp::CallbackGroup::SharedPtr group )
+BabelFishService::SharedPtr
+BabelFish::create_service( NodeInterfaces node, const std::string &service_name,
+                           const std::string &type, AnyServiceCallback callback,
+                           const rclcpp::QoS &qos, rclcpp::CallbackGroup::SharedPtr group )
 {
   ServiceTypeSupport::ConstSharedPtr type_support = get_service_type_support( type );
   if ( type_support == nullptr ) {
     throw BabelFishException( "Failed to create a service for type: " + type + ". Type not found!" );
   }
-  std::string expanded_name = resolve_topic( node, service_name );
   rcl_service_options_t options = rcl_service_get_default_options();
-  options.qos = qos_profile;
+  options.qos = qos.get_rmw_qos_profile();
   auto result =
       BabelFishService::make_shared( node.get_node_base_interface()->get_shared_rcl_node_handle(),
-                                     expanded_name, type_support, std::move( callback ), options );
+                                     service_name, type_support, std::move( callback ), options );
   node.get_node_services_interface()->add_service( result, std::move( group ) );
   return result;
 }
 
 BabelFishServiceClient::SharedPtr
-BabelFish::create_service_client( rclcpp::Node &node, const std::string &service_name,
-                                  const std::string &type, const rmw_qos_profile_t &qos_profile,
+BabelFish::create_service_client( NodeInterfaces node, const std::string &service_name,
+                                  const std::string &type, const rclcpp::QoS &qos,
                                   rclcpp::CallbackGroup::SharedPtr group )
 {
   ServiceTypeSupport::ConstSharedPtr type_support = get_service_type_support( type );
@@ -143,7 +220,7 @@ BabelFish::create_service_client( rclcpp::Node &node, const std::string &service
                               ". Type not found!" );
   }
   rcl_client_options_t options = rcl_client_get_default_options();
-  options.qos = qos_profile;
+  options.qos = qos.get_rmw_qos_profile();
   try {
     auto result = BabelFishServiceClient::make_shared( node.get_node_base_interface().get(),
                                                        node.get_node_graph_interface(),
@@ -156,7 +233,7 @@ BabelFish::create_service_client( rclcpp::Node &node, const std::string &service
 }
 
 BabelFishActionServer::SharedPtr BabelFish::create_action_server(
-    rclcpp::Node &node, const std::string &name, const std::string &type,
+    NodeInterfaces node, const std::string &name, const std::string &type,
     BabelFishActionServer::GoalCallback handle_goal,
     BabelFishActionServer::CancelCallback handle_cancel,
     BabelFishActionServer::AcceptedCallback handle_accepted,
@@ -164,7 +241,7 @@ BabelFishActionServer::SharedPtr BabelFish::create_action_server(
 {
   ActionTypeSupport::ConstSharedPtr type_support = get_action_type_support( type );
   if ( type_support == nullptr ) {
-    throw BabelFishException( "Failed to create an action client for type: " + type +
+    throw BabelFishException( "Failed to create an action server for type: " + type +
                               ". Type not found!" );
   }
   std::weak_ptr<rclcpp::node_interfaces::NodeWaitablesInterface> weak_node =
@@ -209,9 +286,10 @@ BabelFishActionServer::SharedPtr BabelFish::create_action_server(
 }
 
 BabelFishActionClient::SharedPtr
-BabelFish::create_action_client( rclcpp::Node &node, const std::string &name,
-                                 const std::string &type, const rcl_action_client_options_t &options,
-                                 rclcpp::CallbackGroup::SharedPtr group )
+BabelFish::create_action_client( NodeInterfaces node, const std::string &name,
+                                 const std::string &type, rclcpp::CallbackGroup::SharedPtr group,
+                                 const rcl_action_client_options_t &options,
+                                 bool enable_feedback_msg_optimization )
 {
   ActionTypeSupport::ConstSharedPtr type_support = get_action_type_support( type );
   if ( type_support == nullptr ) {
@@ -249,7 +327,8 @@ BabelFish::create_action_client( rclcpp::Node &node, const std::string &name,
   try {
     std::shared_ptr<BabelFishActionClient> action_client(
         new BabelFishActionClient( node.get_node_base_interface(), node.get_node_graph_interface(),
-                                   node.get_node_logging_interface(), name, type_support, options ),
+                                   node.get_node_logging_interface(), name, type_support, options,
+                                   enable_feedback_msg_optimization ),
         deleter );
 
     node.get_node_waitables_interface()->add_waitable( action_client, std::move( group ) );
