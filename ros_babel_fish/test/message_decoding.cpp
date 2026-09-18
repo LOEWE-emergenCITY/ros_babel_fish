@@ -230,8 +230,7 @@ TEST_F( MessageDecodingTest, tests )
   ASSERT_EQ( msg->name(), "ros_babel_fish_test_msgs/msg/TestMessage" );
   EXPECT_TRUE( MESSAGE_CONTENT_EQUAL( test_message, *msg ) );
 
-  subscription =
-      fish.create_subscription( *node, "namespaced_topic", 1, callback, nullptr, {}, 200ms );
+  subscription = fish.create_subscription( *node, "namespaced_topic", 1, callback, {}, 200ms );
   ASSERT_NE( subscription, nullptr );
   ASSERT_EQ( set.wait( 5s ).kind(), rclcpp::WaitResultKind::Ready );
   subscription.reset();

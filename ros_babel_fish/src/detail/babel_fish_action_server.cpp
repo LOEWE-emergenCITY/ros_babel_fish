@@ -28,12 +28,33 @@ ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::ServerGoalHandle(
 }
 
 void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::publish_feedback(
+    ActionT::Feedback::SharedPtr feedback_msg ) const
+{
+  if ( feedback_msg == nullptr ) {
+    throw std::invalid_argument( "publish_feedback() called with a nullptr feedback message" );
+  }
+  publish_feedback( *feedback_msg );
+}
+
+void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::publish_feedback(
     const ActionT::Feedback &feedback_msg ) const
 {
+  if ( !is_executing() ) {
+    RBF2_WARN( "publish_feedback() called on a goal handle not in executing state, ignoring" );
+    return;
+  }
   auto feedback_message = CompoundMessage( *type_support_->feedback_message_type_support );
   feedback_message["goal_id"]["uuid"].as<UUIDMessage>() = uuid_;
   feedback_message["feedback"].as<CompoundMessage>() = feedback_msg;
   publish_feedback_( feedback_message.type_erased_message() );
+}
+
+void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::abort( ActionT::Result::SharedPtr result_msg )
+{
+  if ( result_msg == nullptr ) {
+    throw std::invalid_argument( "abort() called with a nullptr result message" );
+  }
+  abort( *result_msg );
 }
 
 void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::abort( const ActionT::Result &result_msg )
@@ -45,6 +66,15 @@ void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::abort( const Actio
   on_terminal_state_( uuid_, response.type_erased_message() );
 }
 
+void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::succeed(
+    ActionT::Result::SharedPtr result_msg )
+{
+  if ( result_msg == nullptr ) {
+    throw std::invalid_argument( "succeed() called with a nullptr result message" );
+  }
+  succeed( *result_msg );
+}
+
 void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::succeed( const ActionT::Result &result_msg )
 {
   _succeed();
@@ -52,6 +82,15 @@ void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::succeed( const Act
   response["status"] = action_msgs::msg::GoalStatus::STATUS_SUCCEEDED;
   response["result"].as<CompoundMessage>() = result_msg;
   on_terminal_state_( uuid_, response.type_erased_message() );
+}
+
+void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::canceled(
+    ActionT::Result::SharedPtr result_msg )
+{
+  if ( result_msg == nullptr ) {
+    throw std::invalid_argument( "canceled() called with a nullptr result message" );
+  }
+  canceled( *result_msg );
 }
 
 void ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::canceled( const ActionT::Result &result_msg )
@@ -108,12 +147,22 @@ CompoundMessage ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::create_
 
 ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>::~ServerGoalHandle()
 {
-  // Cancel goal if handle was allowed to destruct without reaching a terminal state
-  if ( try_canceling() ) {
-    auto null_result =
-        CompoundMessage::make_shared( type_support_->result_service_type_support->response() );
-    ( *null_result )["status"] = action_msgs::msg::GoalStatus::STATUS_CANCELED;
-    on_terminal_state_( uuid_, null_result );
+  try {
+    // Abort goal if handle was allowed to destruct without reaching a terminal state
+    if ( try_aborting() ) {
+      auto null_result =
+          CompoundMessage::make_shared( type_support_->result_service_type_support->response() );
+      ( *null_result )["status"] = action_msgs::msg::GoalStatus::STATUS_ABORTED;
+      on_terminal_state_( uuid_, null_result );
+    } else if ( try_canceling() ) {
+      // Cancel goal if handle was allowed to destruct without reaching a terminal state
+      auto null_result =
+          CompoundMessage::make_shared( type_support_->result_service_type_support->response() );
+      ( *null_result )["status"] = action_msgs::msg::GoalStatus::STATUS_CANCELED;
+      on_terminal_state_( uuid_, null_result );
+    }
+  } catch ( const std::exception &ex ) {
+    RBF2_DEBUG( "Failed to abort/cancel goal handler in destructor: %s", ex.what() );
   }
 }
 
