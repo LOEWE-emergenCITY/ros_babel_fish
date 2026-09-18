@@ -48,19 +48,6 @@ struct TopicWindowStats {
   void reset() { *this = TopicWindowStats{}; }
 };
 
-std::string format_bytes_per_sec( double bytes_per_sec )
-{
-  const char *units[] = { "B/s", "KiB/s", "MiB/s", "GiB/s" };
-  int unit = 0;
-  while ( bytes_per_sec >= 1024.0 && unit < 3 ) {
-    bytes_per_sec /= 1024.0;
-    ++unit;
-  }
-  std::ostringstream out;
-  out << std::fixed << std::setprecision( unit == 0 ? 0 : 2 ) << bytes_per_sec << " " << units[unit];
-  return out.str();
-}
-
 //! Reads the header stamp of a message as an rclcpp::Time.
 //! @return False if the message has no header or no time stamp field.
 bool try_get_stamp( const CompoundMessage &msg, rclcpp::Time &stamp_out )
