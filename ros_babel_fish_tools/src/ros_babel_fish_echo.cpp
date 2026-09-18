@@ -1,12 +1,14 @@
 // Copyright (c) 2026 Stefan Fabian. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include "ros_babel_fish_tools/cli.hpp"
 #include "ros_babel_fish_tools/nlohmann_json_serialization.hpp"
 #include "ros_babel_fish_tools/yaml_cpp_serialization.hpp"
 
-#include <cstdlib>
 #include <iostream>
 #include <rclcpp/rclcpp.hpp>
+#include <string>
+#include <vector>
 
 using namespace ros_babel_fish;
 using namespace ros_babel_fish_tools;
@@ -19,25 +21,24 @@ void print_usage( const char *name )
   std::cerr << "  --json        Output as JSON (default)" << std::endl;
   std::cerr << "  --yaml        Output as YAML" << std::endl;
   std::cerr << "  --pretty, -p  Pretty print the output" << std::endl;
+  std::cerr << "  --ros-args ...  Pass ROS arguments (e.g. -p use_sim_time:=true)" << std::endl;
 }
 
 int main( int argc, char **argv )
 {
   // Turn off Zenoh logging to avoid additional zenoh output.
   // This node should only output the message, so any additional output is undesirable.
-#ifdef _WIN32
-  _putenv_s( "RUST_LOG", "off" );
-#else
-  setenv( "RUST_LOG", "off", 1 );
-#endif
-  rclcpp::init( argc, argv );
+  silence_rmw_logging();
+  // Strip ROS arguments (e.g. --ros-args -p use_sim_time:=true) before our own parsing; the node
+  // picks them up automatically via the global context.
+  const std::vector<std::string> args = rclcpp::init_and_remove_ros_arguments( argc, argv );
 
   std::string topic;
   std::string type;
   bool output_json = true;
   bool pretty = false;
-  for ( int i = 1; i < argc; ++i ) {
-    std::string arg = argv[i];
+  for ( size_t i = 1; i < args.size(); ++i ) {
+    const std::string &arg = args[i];
     if ( arg == "-h" || arg == "--help" ) {
       print_usage( argv[0] );
       return 0;
