@@ -4,6 +4,7 @@
 #include "stats_common.hpp"
 
 #include <ros_babel_fish/babel_fish.hpp>
+#include <ros_babel_fish/idl/serialization.hpp>
 #include <ros_babel_fish_tools/cli.hpp>
 #include <ros_babel_fish_tools/yaml_cpp_serialization.hpp>
 
@@ -12,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <sstream>
 #include <string>
@@ -25,8 +27,9 @@ void print_usage( const char *name )
 {
   std::cerr << std::format(
       R"(Usage: {0} <service> [type] [options]
-Call a service and report round-trip latency. By default a single call is made;
-pass --rate to call repeatedly and also report the achieved call rate.
+Call a service and report round-trip latency, request/response sizes and (de)serialization
+time. By default a single call is made; pass --rate to call repeatedly and also report the
+achieved call rate and bandwidth.
 If [type] is omitted it is auto-detected from the ROS graph.
 Examples:
   # Single call, auto-detecting the service type:
@@ -47,7 +50,8 @@ Options:
                         as timed out (default: wait indefinitely)
   --request <yaml>      Request payload as an inline YAML map (default: empty request)
   --request-file <file> Read the request payload from a YAML file
-  --out <file>          Write per-call measurements to a CSV file
+  --out <file>          Write per-call measurements (call time, round-trip time, success,
+                        response size, response deserialization time) to a CSV file
   --ros-args ...        Pass ROS arguments (e.g. -p use_sim_time:=true).
 )",
       name );
@@ -55,8 +59,10 @@ Options:
 
 //! All metrics collected within one reporting window.
 struct ServiceWindowStats {
-  Accumulator roundtrip_ns; //!< request sent -> response received
-  uint64_t call_count = 0;  //!< completed attempts (successes + timeouts)
+  Accumulator roundtrip_ns;   //!< request sent -> response received
+  Accumulator response_bytes; //!< serialized size of each received response
+  Accumulator deserialize_ns; //!< time spent deserializing the response
+  uint64_t call_count = 0;    //!< completed attempts (successes + timeouts)
   uint64_t timeout_count = 0;
 
   void reset() { *this = ServiceWindowStats{}; }
@@ -178,7 +184,7 @@ int main( int argc, char **argv )
   if ( !out_path.empty() ) {
     if ( !open_csv_output( out_path, csv ) )
       return 1;
-    csv << "call_ns,roundtrip_ns,success\n";
+    csv << "call_ns,roundtrip_ns,success,response_bytes,deserialize_ns\n";
   }
 
   auto node = std::make_shared<rclcpp::Node>( "ros_babel_fish_service_stats" );
@@ -213,6 +219,42 @@ int main( int argc, char **argv )
     return 1;
   }
 
+  // The client hands the request to the middleware as a C++ struct, so the wire size and the
+  // (de)serialization cost are measured separately with the request/response type supports.
+  const ServiceTypeSupport::ConstSharedPtr service_type_support =
+      fish.get_service_type_support( type );
+  const rosidl_message_type_support_t *request_ts =
+      service_type_support ? service_type_support->type_support_handle.request_typesupport : nullptr;
+  const rosidl_message_type_support_t *response_ts =
+      service_type_support ? service_type_support->type_support_handle.response_typesupport : nullptr;
+  if ( request_ts == nullptr || response_ts == nullptr ) {
+    std::cerr << "Type support for '" << type
+              << "' provides no request/response serialization; sizes and (de)serialization "
+                 "times will not be measured."
+              << std::endl;
+  }
+
+  // The request is the same for every call, so its size and serialization time are measured once.
+  size_t request_bytes = 0;
+  int64_t request_serialize_ns = 0;
+  if ( request_ts != nullptr ) {
+    try {
+      rclcpp::SerializedMessage serialized;
+      const rclcpp::SerializationBase serializer( request_ts );
+      const auto start = std::chrono::steady_clock::now();
+      serializer.serialize_message( request->type_erased_message().get(), &serialized );
+      const auto end = std::chrono::steady_clock::now();
+      request_bytes = serialized.size();
+      request_serialize_ns =
+          std::chrono::duration_cast<std::chrono::nanoseconds>( end - start ).count();
+    } catch ( const std::exception &e ) {
+      std::cerr << "Failed to serialize the request: " << e.what()
+                << "; sizes and (de)serialization times will not be measured." << std::endl;
+      request_ts = nullptr;
+      response_ts = nullptr;
+    }
+  }
+
   // Wait for the service to come up so the first measured call is not skewed by discovery.
   while ( rclcpp::ok() && !client->wait_for_service( std::chrono::seconds( 1 ) ) ) {
     std::cerr << "Waiting for service '" << service << "' to become available..." << std::endl;
@@ -228,6 +270,10 @@ int main( int argc, char **argv )
     std::cout << ", reporting every " << window << "s at up to " << rate << " Hz";
   if ( !request_yaml.empty() )
     std::cout << " with a custom request";
+  if ( request_ts != nullptr ) {
+    std::cout << std::format( " (request {}, serialized in {:.1f} us)",
+                              format_bytes( request_bytes ), request_serialize_ns / 1e3 );
+  }
   if ( csv.is_open() )
     std::cout << ", writing measurements to '" << out_path << "'";
   std::cout << " ..." << std::endl;
@@ -237,8 +283,38 @@ int main( int argc, char **argv )
   const auto call_period = repeat ? std::chrono::nanoseconds( static_cast<int64_t>( 1e9 / rate ) )
                                   : std::chrono::nanoseconds( 0 );
 
+  // Serializes @p response to determine its wire size, then times deserializing it again (the
+  // same metric the topic stats tool reports). @return False if measuring failed.
+  std::optional<rclcpp::SerializationBase> response_serializer;
+  if ( response_ts != nullptr )
+    response_serializer.emplace( response_ts );
+  bool measure_warned = false;
+  auto measure_response = [&]( const CompoundMessage &response, size_t &bytes_out,
+                               int64_t &deserialize_ns_out ) {
+    try {
+      rclcpp::SerializedMessage serialized;
+      response_serializer->serialize_message( response.type_erased_message().get(), &serialized );
+      bytes_out = serialized.size();
+      const auto start = std::chrono::steady_clock::now();
+      auto container = createContainer( service_type_support->response() );
+      response_serializer->deserialize_message( &serialized, container.get() );
+      const auto end = std::chrono::steady_clock::now();
+      deserialize_ns_out =
+          std::chrono::duration_cast<std::chrono::nanoseconds>( end - start ).count();
+      return true;
+    } catch ( const std::exception &e ) {
+      // A measurement failure must not take down the tool; skip it and warn once.
+      if ( !measure_warned ) {
+        std::cerr << "Failed to (de)serialize a response: " << e.what()
+                  << "; skipping its size and deserialization measurement." << std::endl;
+        measure_warned = true;
+      }
+      return false;
+    }
+  };
+
   auto last_report = std::chrono::steady_clock::now();
-  auto report = [&stats, &last_report]() {
+  auto report = [&stats, &last_report, request_bytes, request_ts]() {
     const auto now = std::chrono::steady_clock::now();
     const double elapsed = std::chrono::duration<double>( now - last_report ).count();
     last_report = now;
@@ -252,6 +328,16 @@ int main( int argc, char **argv )
     std::string line =
         std::format( "{} calls ({:.1f} Hz) | rtt ms min/avg/max {}", stats.call_count,
                      stats.call_count / elapsed, format_min_avg_max( stats.roundtrip_ns, 1e6, 2 ) );
+    if ( request_ts != nullptr ) {
+      line += std::format( " | deser us min/avg/max {} | resp B min/avg/max {}",
+                           format_min_avg_max( stats.deserialize_ns, 1e3, 1 ),
+                           format_min_avg_max( stats.response_bytes, 1.0, 0 ) );
+      // Bandwidth counts the request of every attempt (timed-out ones were still sent) plus the
+      // responses that arrived.
+      const double total_bytes = static_cast<double>( request_bytes ) * stats.call_count +
+                                 static_cast<double>( stats.response_bytes.sum );
+      line += std::format( " | bw {}", format_bytes_per_sec( total_bytes / elapsed ) );
+    }
     if ( stats.timeout_count != 0 )
       line += std::format( " | {} timed out", stats.timeout_count );
     std::cout << line << std::endl;
@@ -284,8 +370,18 @@ int main( int argc, char **argv )
     const int64_t roundtrip_ns =
         std::chrono::duration_cast<std::chrono::nanoseconds>( end - start ).count();
     const bool success = ret == rclcpp::FutureReturnCode::SUCCESS;
+    bool measured = false;
+    size_t response_bytes = 0;
+    int64_t deserialize_ns = 0;
     if ( success ) {
       stats.roundtrip_ns.add( roundtrip_ns );
+      const CompoundMessage::SharedPtr response = future.get();
+      if ( response_ts != nullptr && response != nullptr &&
+           measure_response( *response, response_bytes, deserialize_ns ) ) {
+        measured = true;
+        stats.response_bytes.add( static_cast<int64_t>( response_bytes ) );
+        stats.deserialize_ns.add( deserialize_ns );
+      }
     } else {
       // Drop the still-pending request so it doesn't accumulate in the client.
       client->remove_pending_request( future );
@@ -293,19 +389,34 @@ int main( int argc, char **argv )
     }
     ++stats.call_count;
 
-    if ( csv.is_open() )
-      csv << call_time.nanoseconds() << ',' << roundtrip_ns << ',' << ( success ? 1 : 0 ) << '\n';
+    if ( csv.is_open() ) {
+      csv << call_time.nanoseconds() << ',' << roundtrip_ns << ',' << ( success ? 1 : 0 ) << ',';
+      if ( measured )
+        csv << response_bytes << ',' << deserialize_ns;
+      else
+        csv << ',';
+      csv << '\n';
+    }
 
     if ( !repeat ) {
-      // Single-call mode: report this one measurement and exit (non-zero on a timed-out call).
+      // Single-call mode: report this one call's measurements and exit (non-zero on a timeout).
       if ( csv.is_open() )
         csv.flush();
-      if ( success ) {
-        std::cout << std::format( "roundtrip: {:.2f} ms", roundtrip_ns / 1e6 ) << std::endl;
-      } else {
+      if ( !success ) {
         std::cout << "timed out" << std::endl;
+        return 1;
       }
-      return success ? 0 : 1;
+      std::string line = std::format( "roundtrip {:.2f} ms", roundtrip_ns / 1e6 );
+      if ( request_ts != nullptr ) {
+        line += std::format( " | request {} (serialized in {:.1f} us)",
+                             format_bytes( request_bytes ), request_serialize_ns / 1e3 );
+      }
+      if ( measured ) {
+        line += std::format( " | response {} (deserialized in {:.1f} us)",
+                             format_bytes( response_bytes ), deserialize_ns / 1e3 );
+      }
+      std::cout << line << std::endl;
+      return 0;
     }
 
     if ( std::chrono::duration<double>( end - last_report ).count() >= window ) {
