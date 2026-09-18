@@ -85,6 +85,22 @@ public:
     return { std::move( shared_future ), req_id };
   }
 
+  /*!
+   * Convenience overload for callbacks written against rclcpp::Client, which take the
+   * SharedFutureWithRequest by value. The callback is wrapped and forwarded to the
+   * const reference overload.
+   */
+  template<typename CallbackT,
+           typename std::enable_if<rclcpp::function_traits::same_arguments<
+               CallbackT, std::function<void( SharedFutureWithRequest )>>::value>::type * = nullptr>
+  SharedFutureWithRequestAndRequestId async_send_request( const SharedRequest &request,
+                                                          CallbackT &&cb )
+  {
+    return async_send_request(
+        request, [cb = std::forward<CallbackT>( cb )](
+                     const SharedFutureWithRequest &future ) mutable { cb( future ); } );
+  }
+
   bool remove_pending_request( int64_t request_id );
 
   bool remove_pending_request( const FutureAndRequestId &future );

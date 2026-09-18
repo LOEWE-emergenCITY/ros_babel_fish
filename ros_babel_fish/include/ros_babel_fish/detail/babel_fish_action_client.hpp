@@ -13,7 +13,7 @@ template<>
 class Client<ros_babel_fish::impl::BabelFishAction> : public rclcpp_action::ClientBase
 {
 public:
-  RCLCPP_SMART_PTR_ALIASES_ONLY( Client<ros_babel_fish::impl::BabelFishAction> )
+  RCLCPP_SMART_PTR_DEFINITIONS_NOT_COPYABLE( Client<ros_babel_fish::impl::BabelFishAction> )
 
   using GoalHandle = rclcpp_action::ClientGoalHandle<ros_babel_fish::impl::BabelFishAction>;
   using WrappedResult = GoalHandle::WrappedResult;

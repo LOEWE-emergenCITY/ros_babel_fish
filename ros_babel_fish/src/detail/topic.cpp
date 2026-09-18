@@ -5,10 +5,14 @@
 #include "ros_babel_fish/detail/topic.hpp"
 #include "../logging.hpp"
 
+#include <rcl/node.h>
+#include <rcl/time.h>
+#include <rclcpp/exceptions.hpp>
 #include <rclcpp/graph_listener.hpp>
-#include <rclcpp/node.hpp>
-#include <rclcpp/node_interfaces/get_node_topics_interface.hpp>
-#include <rclcpp/wait_set.hpp>
+#include <rclcpp/utilities.hpp>
+
+#include <algorithm>
+#include <map>
 
 using namespace std::chrono_literals;
 
@@ -18,10 +22,11 @@ namespace impl
 {
 namespace
 {
-bool has_topic( rclcpp::Node &node, const std::string &topic, std::vector<std::string> &types )
+bool has_topic( TopicNodeInterfaces &node, const std::string &resolved_topic,
+                std::vector<std::string> &types )
 {
-  const std::map<std::string, std::vector<std::string>> &topics = node.get_topic_names_and_types();
-  const std::string &resolved_topic = node.get_node_topics_interface()->resolve_topic_name( topic );
+  const std::map<std::string, std::vector<std::string>> &topics =
+      node.get_node_graph_interface()->get_topic_names_and_types();
   auto it = std::find_if( topics.begin(), topics.end(), [&resolved_topic]( const auto &entry ) {
     return entry.first == resolved_topic;
   } );
@@ -32,13 +37,15 @@ bool has_topic( rclcpp::Node &node, const std::string &topic, std::vector<std::s
 }
 } // namespace
 
-bool wait_for_topic_and_type_nanoseconds( rclcpp::Node &node, const std::string &topic,
+bool wait_for_topic_and_type_nanoseconds( TopicNodeInterfaces node, const std::string &topic,
                                           std::vector<std::string> &types,
                                           std::chrono::nanoseconds timeout )
 {
   auto start = std::chrono::steady_clock::now();
-  auto event = node.get_graph_event();
-  if ( has_topic( node, topic, types ) )
+  auto node_graph = node.get_node_graph_interface();
+  auto event = node_graph->get_graph_event();
+  const std::string resolved_topic = resolve_topic( node, topic );
+  if ( has_topic( node, resolved_topic, types ) )
     return true;
   if ( timeout == std::chrono::nanoseconds( 0 ) ) {
     // check was non-blocking, return immediately
@@ -52,7 +59,7 @@ bool wait_for_topic_and_type_nanoseconds( rclcpp::Node &node, const std::string 
     return false;
   }
   do {
-    if ( !rclcpp::ok() ) {
+    if ( !rclcpp::ok( node.get_node_base_interface()->get_context() ) ) {
       return false;
     }
     // Limit each wait to 100ms to workaround an issue specific to the Connext RMW implementation.
@@ -62,12 +69,12 @@ bool wait_for_topic_and_type_nanoseconds( rclcpp::Node &node, const std::string 
     // If no other graph events occur, the wait set will not be triggered again until the timeout
     // has been reached, despite the service being available, so we artificially limit the wait
     // time to limit the delay.
-    node.wait_for_graph_change(
+    node_graph->wait_for_graph_change(
         event, std::min( time_to_wait, std::chrono::nanoseconds( RCL_MS_TO_NS( 100 ) ) ) );
     // Because of the aforementioned race condition, we check if the topic is available even if the
     // graph event wasn't triggered.
     event->check_and_clear();
-    if ( has_topic( node, topic, types ) )
+    if ( has_topic( node, resolved_topic, types ) )
       return true;
 
     // topic not available, wait if a timeout was specified
@@ -76,44 +83,43 @@ bool wait_for_topic_and_type_nanoseconds( rclcpp::Node &node, const std::string 
     }
     if ( std::chrono::steady_clock::now() - start > 3s ) {
       RBF2_WARN_THROTTLE(
-          *node.get_clock(), 3000,
+          *node.get_node_clock_interface()->get_clock(), 3000,
           "Still waiting for topic '%s' to appear (timeout=%ld). Are you spinning the node?",
-          topic.c_str(), timeout.count() );
+          resolved_topic.c_str(), timeout.count() );
     }
   } while ( time_to_wait > std::chrono::nanoseconds( 0 ) );
   return false; // timeout exceeded while waiting for the topic
 }
 
-bool wait_for_topic_nanoseconds( rclcpp::Node &node, const std::string &topic,
+bool wait_for_topic_nanoseconds( TopicNodeInterfaces node, const std::string &topic,
                                  std::chrono::nanoseconds timeout )
 {
   std::vector<std::string> types;
-  return wait_for_topic_and_type_nanoseconds( node, topic, types, timeout );
+  return wait_for_topic_and_type_nanoseconds( std::move( node ), topic, types, timeout );
 }
 } // namespace impl
 
-std::string resolve_topic( const rclcpp::Node &node, const std::string &topic )
+std::string resolve_topic( TopicNodeInterfaces node, const std::string &topic )
 {
-  std::string resolved_topic =
-      rclcpp::extend_name_with_sub_namespace( topic, node.get_sub_namespace() );
-  // Until >=galactic we need to expand it manually // TODO Check how to solve this in galactic
-  if ( !resolved_topic.empty() && resolved_topic.front() == '~' ) {
-    resolved_topic = std::string( node.get_fully_qualified_name() ) + resolved_topic.substr( 1 );
+  // Expands the name (~ and relative names) and applies remapping rules like rcl does when
+  // creating the subscription/service.
+  return node.get_node_topics_interface()->resolve_topic_name( topic );
+}
+
+std::string resolve_service_name( TopicNodeInterfaces node, const std::string &service_name )
+{
+  // Same as resolve_topic but with is_service=true so only service remapping rules are applied.
+  auto node_base = node.get_node_base_interface();
+  char *output_cstr = nullptr;
+  auto allocator = rcl_get_default_allocator();
+  rcl_ret_t ret = rcl_node_resolve_name( node_base->get_rcl_node_handle(), service_name.c_str(),
+                                         allocator, true, false, &output_cstr );
+  if ( ret != RCL_RET_OK ) {
+    rclcpp::exceptions::throw_from_rcl_error( ret, "failed to resolve service name",
+                                              rcl_get_error_state() );
   }
-  //  char * output_cstr = nullptr;
-  //  auto allocator = rcl_get_default_allocator();
-  //  rcl_ret_t ret = rcl_node_resolve_name(
-  //    node.get(),
-  //    topic_.c_str(),
-  //    allocator,
-  //    false,
-  //    true,
-  //    &output_cstr);
-  //  if (RCL_RET_OK != ret) {
-  //    throw_from_rcl_error(ret, "failed to resolve name", rcl_get_error_state());
-  //  }
-  //  topic_ = output_cstr
-  //  allocator.deallocate(output_cstr, allocator.state);
-  return resolved_topic;
+  std::string output( output_cstr );
+  allocator.deallocate( output_cstr, allocator.state );
+  return output;
 }
 } // namespace ros_babel_fish
