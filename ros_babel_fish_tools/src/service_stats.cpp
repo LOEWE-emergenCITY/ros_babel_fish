@@ -1,18 +1,16 @@
 // Copyright (c) 2026 Stefan Fabian. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include "stats_common.hpp"
+
 #include <ros_babel_fish/babel_fish.hpp>
 #include <ros_babel_fish_tools/cli.hpp>
 #include <ros_babel_fish_tools/yaml_cpp_serialization.hpp>
 
 #include <chrono>
-#include <cmath>
-#include <cstdlib>
-#include <filesystem>
+#include <format>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <rclcpp/rclcpp.hpp>
 #include <sstream>
@@ -25,68 +23,35 @@ using namespace ros_babel_fish_tools;
 
 void print_usage( const char *name )
 {
-  std::cerr << "Usage: " << name << " <service> [type] [options]" << std::endl;
-  std::cerr << "Call a service and report round-trip latency. By default a single call is made;"
-            << std::endl;
-  std::cerr << "pass --rate to call repeatedly and also report the achieved call rate." << std::endl;
-  std::cerr << "If [type] is omitted it is auto-detected from the ROS graph." << std::endl;
-  std::cerr << "Examples:" << std::endl;
-  std::cerr << "  # Single call, auto-detecting the service type:" << std::endl;
-  std::cerr << "  " << name << " /my_service" << std::endl;
-  std::cerr << "  # Single call with an explicit type and request payload:" << std::endl;
-  std::cerr << "  " << name
-            << " /add_two_ints example_interfaces/srv/AddTwoInts --request '{a: 1, b: 2}'"
-            << std::endl;
-  std::cerr << "  # Call repeatedly at up to 10 Hz, reporting every 2 seconds:" << std::endl;
-  std::cerr << "  " << name << " /my_service --rate 10 --window 2" << std::endl;
-  std::cerr << "  # Pass ROS arguments; '--' ends the ROS args so --rate is parsed by this tool:"
-            << std::endl;
-  std::cerr << "  " << name << " /my_service --ros-args -p use_sim_time:=true -- --rate 10"
-            << std::endl;
-  std::cerr << "Options:" << std::endl;
-  std::cerr << "  -h, --help            Show this help message" << std::endl;
-  std::cerr << "  --rate <hz>           Call repeatedly at up to this many calls per second"
-            << std::endl;
-  std::cerr << "                        (default: perform a single call and exit)" << std::endl;
-  std::cerr << "  --window <seconds>    Reporting interval in seconds; only used with --rate"
-            << std::endl;
-  std::cerr << "                        (default: 5)" << std::endl;
-  std::cerr
-      << "  --timeout <seconds>   Per-call response timeout; a call that exceeds it is counted"
-      << std::endl;
-  std::cerr << "                        as timed out (default: wait indefinitely)" << std::endl;
-  std::cerr
-      << "  --request <yaml>      Request payload as an inline YAML map (default: empty request)"
-      << std::endl;
-  std::cerr << "  --request-file <file> Read the request payload from a YAML file" << std::endl;
-  std::cerr << "  --out <file>          Write per-call measurements to a CSV file" << std::endl;
-  std::cerr << "  --ros-args ...        Pass ROS arguments (e.g. -p use_sim_time:=true)."
-            << std::endl;
+  std::cerr << std::format(
+      R"(Usage: {0} <service> [type] [options]
+Call a service and report round-trip latency. By default a single call is made;
+pass --rate to call repeatedly and also report the achieved call rate.
+If [type] is omitted it is auto-detected from the ROS graph.
+Examples:
+  # Single call, auto-detecting the service type:
+  {0} /my_service
+  # Single call with an explicit type and request payload:
+  {0} /add_two_ints example_interfaces/srv/AddTwoInts --request '{{a: 1, b: 2}}'
+  # Call repeatedly at up to 10 Hz, reporting every 2 seconds:
+  {0} /my_service --rate 10 --window 2
+  # Pass ROS arguments; '--' ends the ROS args so --rate is parsed by this tool:
+  {0} /my_service --ros-args -p use_sim_time:=true -- --rate 10
+Options:
+  -h, --help            Show this help message
+  --rate <hz>           Call repeatedly at up to this many calls per second
+                        (default: perform a single call and exit)
+  --window <seconds>    Reporting interval in seconds; only used with --rate
+                        (default: 5)
+  --timeout <seconds>   Per-call response timeout; a call that exceeds it is counted
+                        as timed out (default: wait indefinitely)
+  --request <yaml>      Request payload as an inline YAML map (default: empty request)
+  --request-file <file> Read the request payload from a YAML file
+  --out <file>          Write per-call measurements to a CSV file
+  --ros-args ...        Pass ROS arguments (e.g. -p use_sim_time:=true).
+)",
+      name );
 }
-
-//! Tracks min/max/sum/count of a single metric over a reporting window.
-struct Accumulator {
-  uint64_t count = 0;
-  int64_t sum = 0;
-  int64_t min = 0;
-  int64_t max = 0;
-
-  void add( int64_t value )
-  {
-    if ( count == 0 ) {
-      min = max = value;
-    } else {
-      min = std::min( min, value );
-      max = std::max( max, value );
-    }
-    sum += value;
-    ++count;
-  }
-
-  double avg() const { return count == 0 ? 0.0 : static_cast<double>( sum ) / count; }
-
-  void reset() { *this = Accumulator{}; }
-};
 
 //! All metrics collected within one reporting window.
 struct WindowStats {
@@ -96,28 +61,6 @@ struct WindowStats {
 
   void reset() { *this = WindowStats{}; }
 };
-
-//! Appends "min/avg/max" for @p acc to @p os (each value divided by @p divisor), or "n/a" if no
-//! samples were collected. Assumes @p os already has the desired float formatting (e.g. std::fixed).
-void append_min_avg_max( std::ostream &os, const Accumulator &acc, double divisor, int precision )
-{
-  if ( acc.count == 0 ) {
-    os << "n/a";
-    return;
-  }
-  os << std::setprecision( precision ) << acc.min / divisor << "/" << acc.avg() / divisor << "/"
-     << acc.max / divisor;
-}
-
-//! Parses a strictly positive, finite number of seconds whose nanosecond representation fits in an
-//! int64_t. @return False on junk ("5x"), empty parses, non-positive values or overflow.
-bool parse_positive_seconds( const std::string &value, double &out )
-{
-  char *end = nullptr;
-  out = std::strtod( value.c_str(), &end );
-  return end != value.c_str() && *end == '\0' && std::isfinite( out ) && out > 0.0 &&
-         out <= static_cast<double>( std::numeric_limits<int64_t>::max() ) / 1e9;
-}
 
 //! Looks up the type of @p service in the ROS graph, waiting up to @p timeout_s for it to appear.
 //! @return The first advertised type, or an empty string if none was found before the timeout.
@@ -169,60 +112,33 @@ int main( int argc, char **argv )
       print_usage( argv[0] );
       return 0;
     }
-    if ( arg == "--window" ) {
-      if ( i + 1 >= args.size() ) {
-        std::cerr << "Missing value for --window" << std::endl;
+    std::string value;
+    if ( arg == "--window" || arg == "--timeout" ) {
+      if ( !take_option_value( args, i, value ) ) {
         print_usage( argv[0] );
         return 1;
       }
-      if ( !parse_positive_seconds( args[++i], window ) ) {
-        std::cerr << "--window must be a positive number of seconds" << std::endl;
+      if ( !parse_positive_seconds( value, arg == "--window" ? window : timeout ) ) {
+        std::cerr << arg << " must be a positive number of seconds" << std::endl;
         return 1;
       }
     } else if ( arg == "--rate" ) {
-      if ( i + 1 >= args.size() ) {
-        std::cerr << "Missing value for --rate" << std::endl;
+      if ( !take_option_value( args, i, value ) ) {
         print_usage( argv[0] );
         return 1;
       }
-      const std::string &value = args[++i];
-      char *end = nullptr;
-      rate = std::strtod( value.c_str(), &end );
-      if ( end == value.c_str() || *end != '\0' || !std::isfinite( rate ) || rate <= 0.0 ) {
+      if ( !parse_positive_number( value, rate ) ) {
         std::cerr << "--rate must be a positive number of calls per second" << std::endl;
         return 1;
       }
-    } else if ( arg == "--timeout" ) {
-      if ( i + 1 >= args.size() ) {
-        std::cerr << "Missing value for --timeout" << std::endl;
+    } else if ( arg == "--request" || arg == "--request-file" || arg == "--out" ) {
+      std::string &target = arg == "--request"        ? request_yaml
+                            : arg == "--request-file" ? request_file
+                                                      : out_path;
+      if ( !take_option_value( args, i, target ) ) {
         print_usage( argv[0] );
         return 1;
       }
-      if ( !parse_positive_seconds( args[++i], timeout ) ) {
-        std::cerr << "--timeout must be a positive number of seconds" << std::endl;
-        return 1;
-      }
-    } else if ( arg == "--request" ) {
-      if ( i + 1 >= args.size() ) {
-        std::cerr << "Missing value for --request" << std::endl;
-        print_usage( argv[0] );
-        return 1;
-      }
-      request_yaml = args[++i];
-    } else if ( arg == "--request-file" ) {
-      if ( i + 1 >= args.size() ) {
-        std::cerr << "Missing value for --request-file" << std::endl;
-        print_usage( argv[0] );
-        return 1;
-      }
-      request_file = args[++i];
-    } else if ( arg == "--out" ) {
-      if ( i + 1 >= args.size() ) {
-        std::cerr << "Missing value for --out" << std::endl;
-        print_usage( argv[0] );
-        return 1;
-      }
-      out_path = args[++i];
     } else if ( !arg.empty() && arg[0] == '-' ) {
       std::cerr << "Unknown option: " << arg << std::endl;
       print_usage( argv[0] );
@@ -260,22 +176,8 @@ int main( int argc, char **argv )
 
   std::ofstream csv;
   if ( !out_path.empty() ) {
-    if ( std::filesystem::exists( out_path ) ) {
-      std::cout << "Output file '" << out_path
-                << "' already exists. Overwrite? [y/N]: " << std::flush;
-      std::string answer;
-      // A non-interactive stdin (EOF) leaves answer empty, i.e. defaults to not overwriting.
-      std::getline( std::cin, answer );
-      if ( answer != "y" && answer != "Y" && answer != "yes" ) {
-        std::cerr << "Aborting; output file not overwritten." << std::endl;
-        return 1;
-      }
-    }
-    csv.open( out_path );
-    if ( !csv.is_open() ) {
-      std::cerr << "Failed to open output file: " << out_path << std::endl;
+    if ( !open_csv_output( out_path, csv ) )
       return 1;
-    }
     csv << "call_ns,roundtrip_ns,success\n";
   }
 
@@ -347,14 +249,12 @@ int main( int argc, char **argv )
       return;
     }
 
-    std::ostringstream line;
-    line << stats.call_count << " calls (" << std::fixed << std::setprecision( 1 )
-         << stats.call_count / elapsed << " Hz)";
-    line << " | rtt ms min/avg/max ";
-    append_min_avg_max( line, stats.roundtrip_ns, 1e6, 2 );
+    std::string line =
+        std::format( "{} calls ({:.1f} Hz) | rtt ms min/avg/max {}", stats.call_count,
+                     stats.call_count / elapsed, format_min_avg_max( stats.roundtrip_ns, 1e6, 2 ) );
     if ( stats.timeout_count != 0 )
-      line << " | " << stats.timeout_count << " timed out";
-    std::cout << line.str() << std::endl;
+      line += std::format( " | {} timed out", stats.timeout_count );
+    std::cout << line << std::endl;
 
     stats.reset();
   };
@@ -401,8 +301,7 @@ int main( int argc, char **argv )
       if ( csv.is_open() )
         csv.flush();
       if ( success ) {
-        std::cout << "roundtrip: " << std::fixed << std::setprecision( 2 ) << roundtrip_ns / 1e6
-                  << " ms" << std::endl;
+        std::cout << std::format( "roundtrip: {:.2f} ms", roundtrip_ns / 1e6 ) << std::endl;
       } else {
         std::cout << "timed out" << std::endl;
       }
