@@ -399,14 +399,14 @@ TEST_F( JsonSerializationTest, supplementaryUnicode )
 {
   auto msg = fish.create_message_shared( "ros_babel_fish_test_msgs/msg/TestMessage" );
   // U+1F600 GRINNING FACE — requires 4-byte UTF-8
-  ( *msg )["str"] = std::string( u8"\U0001F600" );
+  ( *msg )["str"] = std::string( "\U0001F600" );
 
   json j = compound_message_to_json( *msg );
-  EXPECT_EQ( j["str"].get<std::string>(), u8"\U0001F600" );
+  EXPECT_EQ( j["str"].get<std::string>(), "\U0001F600" );
 
   auto msg2 = fish.create_message_shared( "ros_babel_fish_test_msgs/msg/TestMessage" );
   json_to_message( j, *msg2 );
-  EXPECT_EQ( ( *msg2 )["str"].value<std::string>(), u8"\U0001F600" );
+  EXPECT_EQ( ( *msg2 )["str"].value<std::string>(), "\U0001F600" );
 }
 
 TEST_F( JsonSerializationTest, boundedArrayThrows )
