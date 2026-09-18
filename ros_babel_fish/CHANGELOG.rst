@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+4.26.90 (2026-09-18)
+--------------------
 * Decouple from Node using NodeInterfaces. Aligned APIs with rclcpp changes.
 * Fixed deferred service callbacks.
 * Improve test flakiness with fast dds.

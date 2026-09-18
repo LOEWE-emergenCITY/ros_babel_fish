@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+4.26.90 (2026-09-18)
+--------------------
 * [Backport lyrical] Added service stats tool. (`#36 <https://github.com/LOEWE-emergenCITY/ros_babel_fish/issues/36>`_)
   * Added service stats tool.
   * Tool refactoring and consistency renaming.
