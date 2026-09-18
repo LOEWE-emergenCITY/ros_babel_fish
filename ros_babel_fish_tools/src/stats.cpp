@@ -2,18 +2,15 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "compression.hpp"
+#include "stats_common.hpp"
 
 #include <ros_babel_fish/babel_fish.hpp>
 #include <ros_babel_fish_tools/cli.hpp>
 
 #include <chrono>
-#include <cmath>
-#include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <limits>
 #include <rclcpp/rclcpp.hpp>
 #include <sstream>
 #include <string>
@@ -37,30 +34,6 @@ void print_usage( const char *name )
   std::cerr << "                      algo is 'lz4' or 'zstd'" << std::endl;
   std::cerr << "  --ros-args ...      Pass ROS arguments (e.g. -p use_sim_time:=true)" << std::endl;
 }
-
-//! Tracks min/max/sum/count of a single metric over a reporting window.
-struct Accumulator {
-  uint64_t count = 0;
-  int64_t sum = 0;
-  int64_t min = 0;
-  int64_t max = 0;
-
-  void add( int64_t value )
-  {
-    if ( count == 0 ) {
-      min = max = value;
-    } else {
-      min = std::min( min, value );
-      max = std::max( max, value );
-    }
-    sum += value;
-    ++count;
-  }
-
-  double avg() const { return count == 0 ? 0.0 : static_cast<double>( sum ) / count; }
-
-  void reset() { *this = Accumulator{}; }
-};
 
 //! All metrics collected within one reporting window.
 struct WindowStats {
@@ -86,18 +59,6 @@ std::string format_bytes_per_sec( double bytes_per_sec )
   std::ostringstream out;
   out << std::fixed << std::setprecision( unit == 0 ? 0 : 2 ) << bytes_per_sec << " " << units[unit];
   return out.str();
-}
-
-//! Appends "min/avg/max" for @p acc to @p os (each value divided by @p divisor), or "n/a" if no
-//! samples were collected. Assumes @p os already has the desired float formatting (e.g. std::fixed).
-void append_min_avg_max( std::ostream &os, const Accumulator &acc, double divisor, int precision )
-{
-  if ( acc.count == 0 ) {
-    os << "n/a";
-    return;
-  }
-  os << std::setprecision( precision ) << acc.min / divisor << "/" << acc.avg() / divisor << "/"
-     << acc.max / divisor;
 }
 
 //! Reads the header stamp of a message as an rclcpp::Time.
@@ -136,35 +97,26 @@ int main( int argc, char **argv )
       print_usage( argv[0] );
       return 0;
     }
+    std::string value;
     if ( arg == "--window" ) {
-      if ( i + 1 >= args.size() ) {
-        std::cerr << "Missing value for --window" << std::endl;
+      if ( !take_option_value( args, i, value ) ) {
         print_usage( argv[0] );
         return 1;
       }
-      const std::string &value = args[++i];
-      char *end = nullptr;
-      window = std::strtod( value.c_str(), &end );
-      // Reject junk ("5x"), empty parses and values large enough to overflow the timer period.
-      if ( end == value.c_str() || *end != '\0' || !std::isfinite( window ) || window <= 0.0 ||
-           window > static_cast<double>( std::numeric_limits<int64_t>::max() ) / 1e9 ) {
+      if ( !parse_positive_seconds( value, window ) ) {
         std::cerr << "--window must be a positive number of seconds" << std::endl;
         return 1;
       }
     } else if ( arg == "--out" ) {
-      if ( i + 1 >= args.size() ) {
-        std::cerr << "Missing value for --out" << std::endl;
+      if ( !take_option_value( args, i, out_path ) ) {
         print_usage( argv[0] );
         return 1;
       }
-      out_path = args[++i];
     } else if ( arg == "--compress" ) {
-      if ( i + 1 >= args.size() ) {
-        std::cerr << "Missing value for --compress" << std::endl;
+      if ( !take_option_value( args, i, value ) ) {
         print_usage( argv[0] );
         return 1;
       }
-      const std::string &value = args[++i];
       if ( !parse_compression_algorithm( value, compression ) ) {
         std::cerr << "--compress must be 'lz4' or 'zstd', got: " << value << std::endl;
         return 1;
@@ -191,22 +143,8 @@ int main( int argc, char **argv )
 
   std::ofstream csv;
   if ( !out_path.empty() ) {
-    if ( std::filesystem::exists( out_path ) ) {
-      std::cout << "Output file '" << out_path
-                << "' already exists. Overwrite? [y/N]: " << std::flush;
-      std::string answer;
-      // A non-interactive stdin (EOF) leaves answer empty, i.e. defaults to not overwriting.
-      std::getline( std::cin, answer );
-      if ( answer != "y" && answer != "Y" && answer != "yes" ) {
-        std::cerr << "Aborting; output file not overwritten." << std::endl;
-        return 1;
-      }
-    }
-    csv.open( out_path );
-    if ( !csv.is_open() ) {
-      std::cerr << "Failed to open output file: " << out_path << std::endl;
+    if ( !open_csv_output( out_path, csv ) )
       return 1;
-    }
     csv << "recv_ns,latency_ns,deserialize_ns,size_bytes";
     if ( compression != CompressionAlgorithm::None )
       csv << ",compress_ns,decompress_ns,compressed_size_bytes";
@@ -357,10 +295,10 @@ int main( int argc, char **argv )
          << stats.message_count / elapsed << " Hz)";
 
     line << " | latency ms min/avg/max ";
-    append_min_avg_max( line, stats.latency_ns, 1e6, 2 );
+    line << format_min_avg_max( stats.latency_ns, 1e6, 2 );
 
     line << " | deser us min/avg/max ";
-    append_min_avg_max( line, stats.deserialize_ns, 1e3, 1 );
+    line << format_min_avg_max( stats.deserialize_ns, 1e3, 1 );
 
     line << " | bw " << format_bytes_per_sec( stats.total_bytes / elapsed );
     std::cout << line.str() << std::endl;
@@ -375,9 +313,9 @@ int main( int argc, char **argv )
               << static_cast<double>( stats.total_bytes ) / stats.total_compressed_bytes << "x)";
       }
       cline << " | compress us min/avg/max ";
-      append_min_avg_max( cline, stats.compress_ns, 1e3, 1 );
+      cline << format_min_avg_max( stats.compress_ns, 1e3, 1 );
       cline << " | decompress us min/avg/max ";
-      append_min_avg_max( cline, stats.decompress_ns, 1e3, 1 );
+      cline << format_min_avg_max( stats.decompress_ns, 1e3, 1 );
       std::cout << cline.str() << std::endl;
     }
 
