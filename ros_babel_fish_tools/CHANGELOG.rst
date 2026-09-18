@@ -2,8 +2,8 @@
 Changelog for package ros_babel_fish_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+5.26.90 (2026-09-18)
+--------------------
 * Added tests for tools.
 * Tool refactoring and consistency renaming.
 * Also output bw and (de)serialization time for single service call.
