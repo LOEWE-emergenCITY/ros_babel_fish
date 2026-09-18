@@ -33,11 +33,11 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
   yaml-cpp
 )
 
-add_executable(ros_babel_fish_echo src/ros_babel_fish_echo.cpp)
-target_link_libraries(ros_babel_fish_echo PRIVATE ${PROJECT_NAME} rclcpp::rclcpp)
+add_executable(echo src/echo.cpp)
+target_link_libraries(echo PRIVATE ${PROJECT_NAME} rclcpp::rclcpp)
 
-add_executable(stats src/stats.cpp)
-target_link_libraries(stats PRIVATE ${PROJECT_NAME} rclcpp::rclcpp PkgConfig::LZ4 PkgConfig::ZSTD)
+add_executable(topic_stats src/topic_stats.cpp)
+target_link_libraries(topic_stats PRIVATE ${PROJECT_NAME} rclcpp::rclcpp PkgConfig::LZ4 PkgConfig::ZSTD)
 
 add_executable(service_stats src/service_stats.cpp)
 target_link_libraries(service_stats PRIVATE ${PROJECT_NAME} rclcpp::rclcpp)
@@ -52,7 +52,7 @@ install(
 )
 
 install(
-  TARGETS ros_babel_fish_echo stats service_stats
+  TARGETS echo topic_stats service_stats
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
