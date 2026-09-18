@@ -57,6 +57,24 @@ inline std::string format_min_avg_max( const Accumulator &acc, double divisor, i
                       acc.max / divisor, precision );
 }
 
+//! Formats a byte count with a binary unit (B, KiB, MiB, GiB), e.g. "1.50 KiB".
+inline std::string format_bytes( double bytes, const char *suffix = "" )
+{
+  const char *units[] = { "B", "KiB", "MiB", "GiB" };
+  int unit = 0;
+  while ( bytes >= 1024.0 && unit < 3 ) {
+    bytes /= 1024.0;
+    ++unit;
+  }
+  return std::format( "{:.{}f} {}{}", bytes, unit == 0 ? 0 : 2, units[unit], suffix );
+}
+
+//! Formats a bandwidth with a binary unit, e.g. "1.50 KiB/s".
+inline std::string format_bytes_per_sec( double bytes_per_sec )
+{
+  return format_bytes( bytes_per_sec, "/s" );
+}
+
 //! Parses a strictly positive, finite number. @return False on junk ("5x"), empty parses or
 //! non-positive values.
 inline bool parse_positive_number( const std::string &value, double &out )
