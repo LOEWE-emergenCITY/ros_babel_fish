@@ -360,8 +360,8 @@ int main( int argc, char **argv )
     const auto start = std::chrono::steady_clock::now();
     auto future = client->async_send_request( request );
     const rclcpp::FutureReturnCode ret =
-        timeout > 0.0 ? executor.spin_until_future_complete( future.future, timeout_dur )
-                      : executor.spin_until_future_complete( future.future );
+        timeout > 0.0 ? executor.spin_until_future_complete( future, timeout_dur )
+                      : executor.spin_until_future_complete( future );
     const auto end = std::chrono::steady_clock::now();
 
     if ( ret == rclcpp::FutureReturnCode::INTERRUPTED )
@@ -383,8 +383,7 @@ int main( int argc, char **argv )
         stats.deserialize_ns.add( deserialize_ns );
       }
     } else {
-      // Drop the still-pending request so it doesn't accumulate in the client.
-      client->remove_pending_request( future );
+      // Dropping request is implemented only for lyrical and up.
       ++stats.timeout_count;
     }
     ++stats.call_count;
