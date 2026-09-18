@@ -19,7 +19,7 @@ template<typename Message>
 std::shared_ptr<Message> waitForMessage( const std::string &topic )
 {
   rclcpp::QoS qos = rclcpp::QoS( 1 ).transient_local();
-  auto sub = node->create_subscription<Message>( topic, qos, []( std::unique_ptr<Message> ) {} );
+  auto sub = node->create_subscription<Message>( topic, qos, []( std::unique_ptr<Message> ) { } );
   rclcpp::ThreadSafeWaitSet wait_set(
       std::vector<rclcpp::ThreadSafeWaitSet::SubscriptionEntry>{ { sub } } );
   auto wait_result = wait_set.template wait();

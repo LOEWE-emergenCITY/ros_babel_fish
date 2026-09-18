@@ -75,6 +75,6 @@ void BabelFishServiceClient::handle_response( std::shared_ptr<rmw_request_id_t> 
 
 BabelFishServiceClient::SharedFuture BabelFishServiceClient::async_send_request( SharedRequest request )
 {
-  return async_send_request( request, []( SharedFuture ) {} );
+  return async_send_request( request, []( SharedFuture ) { } );
 }
 } // namespace ros_babel_fish
