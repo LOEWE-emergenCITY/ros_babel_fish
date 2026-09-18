@@ -20,16 +20,30 @@ class ServerGoalHandle<ros_babel_fish::impl::BabelFishAction>
 public:
   using ActionT = ros_babel_fish::impl::BabelFishAction;
 
+  /// Send an update about the progress of a goal.
+  /// Mirrors ServerGoalHandle<ActionT>::publish_feedback: ignored with a warning if the goal is not executing.
   /// @see ServerGoalHandle<ActionT>::publish_feedback
+  void publish_feedback( ActionT::Feedback::SharedPtr feedback_msg ) const;
+
+  //! Convenience overload of publish_feedback taking the feedback message by reference.
   void publish_feedback( const ActionT::Feedback &feedback_msg ) const;
 
   /// @see ServerGoalHandle<ActionT>::abort
+  void abort( ActionT::Result::SharedPtr result_msg );
+
+  //! Convenience overload of abort taking the result message by reference.
   void abort( const ActionT::Result &result_msg );
 
   /// @see ServerGoalHandle<ActionT>::succeed
+  void succeed( ActionT::Result::SharedPtr result_msg );
+
+  //! Convenience overload of succeed taking the result message by reference.
   void succeed( const ActionT::Result &result_msg );
 
-  // @see ServerGoalHandle<ActionT>::canceled
+  /// @see ServerGoalHandle<ActionT>::canceled
+  void canceled( ActionT::Result::SharedPtr result_msg );
+
+  //! Convenience overload of canceled taking the result message by reference.
   void canceled( const ActionT::Result &result_msg );
 
   /// @see ServerGoalHandle<ActionT>::execute
