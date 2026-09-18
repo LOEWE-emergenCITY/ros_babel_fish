@@ -54,12 +54,12 @@ Options:
 }
 
 //! All metrics collected within one reporting window.
-struct WindowStats {
+struct ServiceWindowStats {
   Accumulator roundtrip_ns; //!< request sent -> response received
   uint64_t call_count = 0;  //!< completed attempts (successes + timeouts)
   uint64_t timeout_count = 0;
 
-  void reset() { *this = WindowStats{}; }
+  void reset() { *this = ServiceWindowStats{}; }
 };
 
 //! Looks up the type of @p service in the ROS graph, waiting up to @p timeout_s for it to appear.
@@ -232,7 +232,7 @@ int main( int argc, char **argv )
     std::cout << ", writing measurements to '" << out_path << "'";
   std::cout << " ..." << std::endl;
 
-  WindowStats stats;
+  ServiceWindowStats stats;
   const auto timeout_dur = std::chrono::nanoseconds( static_cast<int64_t>( timeout * 1e9 ) );
   const auto call_period = repeat ? std::chrono::nanoseconds( static_cast<int64_t>( 1e9 / rate ) )
                                   : std::chrono::nanoseconds( 0 );

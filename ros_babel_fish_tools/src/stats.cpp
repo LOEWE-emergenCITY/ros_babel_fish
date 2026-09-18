@@ -36,7 +36,7 @@ void print_usage( const char *name )
 }
 
 //! All metrics collected within one reporting window.
-struct WindowStats {
+struct TopicWindowStats {
   Accumulator latency_ns;     //!< header stamp -> receive time
   Accumulator deserialize_ns; //!< time spent deserializing the message
   Accumulator compress_ns;    //!< time spent compressing the serialized message
@@ -45,7 +45,7 @@ struct WindowStats {
   uint64_t total_bytes = 0;
   uint64_t total_compressed_bytes = 0;
 
-  void reset() { *this = WindowStats{}; }
+  void reset() { *this = TopicWindowStats{}; }
 };
 
 std::string format_bytes_per_sec( double bytes_per_sec )
@@ -154,7 +154,7 @@ int main( int argc, char **argv )
   auto node = std::make_shared<rclcpp::Node>( "ros_babel_fish_stats" );
   BabelFish fish;
 
-  WindowStats stats;
+  TopicWindowStats stats;
   bool latency_warned = false;
   bool compress_warned = false;
   BabelFishSubscription::SharedPtr sub;
