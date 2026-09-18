@@ -141,10 +141,6 @@ ament_export_dependencies(rclcpp rclcpp_action rosidl_runtime_cpp rosidl_typesup
 #############
 
 if (BUILD_TESTING)
-  set(ament_cmake_clang_format_CONFIG_FILE "${CMAKE_SOURCE_DIR}/../.clang-format")
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
-
   find_package(ament_cmake_gtest REQUIRED)
   find_package(example_interfaces REQUIRED)
   find_package(geometry_msgs REQUIRED)
