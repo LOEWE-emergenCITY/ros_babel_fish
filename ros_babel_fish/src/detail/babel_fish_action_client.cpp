@@ -221,12 +221,12 @@ void Client<impl::BabelFishAction>::handle_status_message( std::shared_ptr<void>
     // Status is not for one of our goal handles
     auto it = goal_handles_.find( goal_id );
     if ( it == goal_handles_.end() )
-      return;
+      continue;
     GoalHandle::SharedPtr goal_handle = it->second.lock();
     if ( !goal_handle ) {
       // No more references to goal handle => drop it
       goal_handles_.erase( it );
-      return;
+      continue;
     }
 
     goal_handle->set_status( status["status"].value<int8_t>() );
