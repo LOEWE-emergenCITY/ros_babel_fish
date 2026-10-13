@@ -141,22 +141,22 @@ ros_babel_fish_tools::yaml_to_message( node, *empty_msg );
 
 ### Echo Tool
 
-The `ros_babel_fish_echo` tool is a CLI utility that prints the first message of a topic as JSON and then exits.
+The `echo` tool is a CLI utility that prints the first message of a topic as JSON and then exits.
 
 ```bash
-ros2 run ros_babel_fish_tools ros_babel_fish_echo /topic [type]
+ros2 run ros_babel_fish_tools echo /topic [type]
 ```
 
 > [!TIP]
 > Use `--yaml` to change the output format to YAML and `--pretty` (or `-p`) to format the JSON output.
 
-### Stats Tool
+### Topic Stats Tool
 
-The `stats` tool subscribes to a topic and periodically reports message rate, latency, deserialization time and bandwidth.
+The `topic_stats` tool subscribes to a topic and periodically reports message rate, latency, deserialization time and bandwidth.
 Bandwidth and deserialization time are measured for any message type; latency requires the message to have a `std_msgs/Header` `header` field and is reported as `n/a` otherwise.
 
 ```bash
-ros2 run ros_babel_fish_tools stats /topic [type]
+ros2 run ros_babel_fish_tools topic_stats /topic [type]
 ```
 
 Options:
@@ -167,6 +167,28 @@ Options:
 | `--out <file>` | Write per-message measurements (receive time, latency, deserialize time, size) to a CSV file |
 | `--compress <algo>` | Also report compressed bandwidth and (de)compression time; `algo` is `lz4` or `zstd` |
 | `--ros-args ...` | Pass ROS arguments (e.g. `-p use_sim_time:=true`) |
+| `-h`, `--help` | Show the help message |
+
+### Service Stats Tool
+
+The `service_stats` tool calls a service and reports the round-trip time, the request and response sizes and the time spent serializing the request and deserializing the response.
+By default a single call is made and its measurements are printed; with `--rate` the service is called repeatedly and the call rate, min/avg/max of each metric, bandwidth and the number of timed-out calls are reported once per window.
+
+```bash
+ros2 run ros_babel_fish_tools service_stats /service [type] [options]
+```
+
+Options:
+
+| Option | Description |
+| --- | --- |
+| `--rate <hz>` | Call repeatedly at up to this many calls per second (default: perform a single call and exit) |
+| `--window <seconds>` | Reporting interval in seconds; only used with `--rate` (default: 5) |
+| `--timeout <seconds>` | Per-call response timeout; a call that exceeds it is counted as timed out (default: wait indefinitely) |
+| `--request <yaml>` | Request payload as an inline YAML map (default: empty request) |
+| `--request-file <file>` | Read the request payload from a YAML file |
+| `--out <file>` | Write per-call measurements (call time, round-trip time, success, response size, deserialize time) to a CSV file |
+| `--ros-args ...` | Pass ROS arguments (e.g. `-p use_sim_time:=true`); end them with `--` so the remaining options are parsed by the tool |
 | `-h`, `--help` | Show the help message |
 
 ## License
