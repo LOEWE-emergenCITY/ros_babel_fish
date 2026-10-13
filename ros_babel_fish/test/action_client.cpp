@@ -194,6 +194,63 @@ TEST( ActionClientTest, actionClient )
   ASSERT_EQ( result.wait_for( 10s ), std::future_status::ready );
 }
 
+TEST( ActionClientTest, statusWithForeignGoals )
+{
+  using namespace std::chrono_literals;
+  using Action = ros_babel_fish_test_msgs::action::SimpleTest;
+  // Goals stay in their current state (e.g. canceling) until released.
+  auto release = std::make_shared<std::atomic<bool>>( false );
+  rclcpp_action::Server<Action>::SharedPtr server = rclcpp_action::create_server<Action>(
+      node, "ros_babel_fish_client_status_test_server",
+      []( const rclcpp_action::GoalUUID &, const std::shared_ptr<const Action::Goal> & ) {
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+      },
+      []( const std::shared_ptr<rclcpp_action::ServerGoalHandle<Action>> & ) {
+        return rclcpp_action::CancelResponse::ACCEPT;
+      },
+      [release]( const std::shared_ptr<rclcpp_action::ServerGoalHandle<Action>> &handle ) {
+        std::thread t( [handle, release]() {
+          while ( !*release ) std::this_thread::sleep_for( 10ms );
+          if ( handle->is_canceling() )
+            handle->canceled( std::make_shared<Action::Result>() );
+          else
+            handle->abort( std::make_shared<Action::Result>() );
+        } );
+        t.detach();
+      } );
+
+  BabelFish fish;
+  auto other_client = fish.create_action_client( *node, "ros_babel_fish_client_status_test_server",
+                                                 "ros_babel_fish_test_msgs/action/SimpleTest" );
+  auto client = fish.create_action_client( *node, "ros_babel_fish_client_status_test_server",
+                                           "ros_babel_fish_test_msgs/action/SimpleTest" );
+  ASSERT_TRUE( other_client->wait_for_action_server( 5s ) );
+  ASSERT_TRUE( client->wait_for_action_server( 5s ) );
+
+  // The other client's goal precedes ours in the server's status array and is unknown to client.
+  auto other_future = other_client->async_send_goal( other_client->create_goal() );
+  ASSERT_EQ( other_future.wait_for( 3s ), std::future_status::ready );
+  auto other_handle = other_future.get();
+  ASSERT_NE( other_handle, nullptr );
+  auto other_result = other_client->async_get_result( other_handle );
+
+  auto gh_future = client->async_send_goal( client->create_goal() );
+  ASSERT_EQ( gh_future.wait_for( 3s ), std::future_status::ready );
+  auto goal_handle = gh_future.get();
+  ASSERT_NE( goal_handle, nullptr );
+  auto result = client->async_get_result( goal_handle );
+
+  ASSERT_EQ( client->async_cancel_goal( goal_handle ).wait_for( 1s ), std::future_status::ready );
+  for ( int i = 0;
+        i < 100 && goal_handle->get_status() != action_msgs::msg::GoalStatus::STATUS_CANCELING; ++i )
+    std::this_thread::sleep_for( 10ms );
+  EXPECT_EQ( goal_handle->get_status(), action_msgs::msg::GoalStatus::STATUS_CANCELING );
+
+  *release = true;
+  EXPECT_EQ( other_result.wait_for( 3s ), std::future_status::ready );
+  EXPECT_EQ( result.wait_for( 3s ), std::future_status::ready );
+}
+
 int main( int argc, char **argv )
 {
   testing::InitGoogleTest( &argc, argv );
